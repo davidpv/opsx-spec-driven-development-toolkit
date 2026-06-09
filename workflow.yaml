@@ -21,6 +21,12 @@ jira:
     bug: Bug
     task: Task
 
+content:
+  # Default language offered for client-facing artifacts (discovery docs,
+  # stories, Jira exports, PR descriptions). Commands ALWAYS confirm the
+  # language with the user before generating; this is only the preselected option.
+  default_language: es   # es | en
+
 backlog:
   discovery_dir: backlog/discovery
   stories_dir: backlog/stories
