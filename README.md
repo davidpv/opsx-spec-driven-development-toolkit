@@ -89,6 +89,8 @@ flowchart TD
     WEBUI --> DONE
 ```
 
+> **"Spec wrong or drifted?"** — checkpoint during implementation. *Wrong*: while coding you discover a requirement or scenario was incorrect or incomplete. *Drifted*: `openspec/specs/` no longer matches what the code actually does (hotfixes, old unspec'd commits). In both cases the rule is the same: never diverge silently — run `/opsx:sync` to fix the spec first, then resume `/opsx:apply`. Code must always trace back to a correct spec.
+
 Human checkpoints, summarized: the `/req-capture` interview, every language gate (es/en, mandatory on client-facing text), commit message approval, pasting Jira exports and recording `jira_key`, PR code review, and merging via web UI when no platform CLI exists. Everything else runs agentically.
 
 Traceability chain: **Discovery → Story → Change → Task → Commit → PR**. Each link is recorded where it happens: story frontmatter (`change:`), commit footers (`Change:`/`Task:`/`Story:`), PR description.
@@ -152,16 +154,3 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 3. Adjust `workflow.yaml`: branches (git-flow vs trunk-based), Jira project key, platform.
 4. Extend `AGENTS.md` with project-specific rules.
 5. Start with `/req-capture` for a new initiative, or `/opsx:propose` for a direct change.
-
-## Keeping it up to date
-
-After upgrading the OpenSpec CLI, regenerate the integration files:
-
-```bash
-openspec update
-```
-
-## Further reading
-
-- [OpenSpec docs](https://github.com/Fission-AI/OpenSpec/tree/main/docs) — getting started, CLI, concepts
-- [opencode docs](https://opencode.ai/docs) — agents, commands, rules, config
