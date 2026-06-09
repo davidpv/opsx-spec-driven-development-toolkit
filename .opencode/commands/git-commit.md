@@ -2,7 +2,7 @@
 description: Create a semantic (conventional) commit traced to the current OpenSpec change
 ---
 
-Create a conventional commit for the staged/pending work. `$ARGUMENTS` may name the change; otherwise infer it from the current branch (`feature/<change>` per `workflow.yaml`).
+Create a conventional commit for the staged/pending work. `$ARGUMENTS` may name the change; otherwise infer it from the current branch — `feature/<change>` or `feature/<jira_key>-<change>` per `workflow.yaml` (strip a leading Jira key like `PROJ-123-` before matching against `openspec/changes/`).
 
 **Steps**
 
@@ -19,4 +19,8 @@ Create a conventional commit for the staged/pending work. `$ARGUMENTS` may name 
 
 4. Show the message, commit on approval, then tick the completed task(s) in `tasks.md` and amend or include that in the commit.
 
-Never commit directly to `main` or the integration branch — if on one of them, offer to create `feature/<change>` first.
+Branch policy (`git.work_mode` in `workflow.yaml`):
+- On `main`: never commit. Offer to switch to the integration branch or create a feature branch.
+- On the integration branch: allowed if `work_mode: flexible` (confirm with the user the first time in the session); if `work_mode: feature`, offer to create a feature branch first.
+- When creating a feature branch: look up the linked story (frontmatter `change:` match in `backlog/stories/`); if it has a `jira_key`, name the branch `feature/<jira_key>-<change>`, otherwise `feature/<change>`.
+- On a feature branch: commit normally.
