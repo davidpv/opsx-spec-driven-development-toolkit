@@ -65,10 +65,12 @@ flowchart TD
     CHG --> RV["/review-change 🤖<br/>spec-reviewer + validate --strict"]:::agent
     RV -- REVISE --> FIX["fix artifacts 🤖"]:::agent
     FIX --> RV
-    RV -- APPROVE --> APPLY
+    RV -- APPROVE --> BRANCH{"Branch gate 🧑<br/>where to implement? (git.work_mode)<br/>blocks any code until resolved"}
+    BRANCH -- "create feature branch<br/>(reviewed PR)" --> APPLY
+    BRANCH -- "directly on develop<br/>(flexible mode, no review)" --> APPLY
 
     %% Build phase
-    APPLY["/opsx:apply 🤖<br/>on feature/change branch"]:::agent
+    APPLY["/opsx:apply 🤖"]:::agent
     APPLY --> DRIFT{"Spec wrong or drifted?"}
     DRIFT -- yes --> SYNC["/opsx:sync 🤖"]:::agent
     SYNC --> APPLY
@@ -76,7 +78,10 @@ flowchart TD
     GC -- more tasks --> APPLY
 
     %% Delivery phase
-    GC -- all tasks done --> PRO["/pr-open 🧑🤖<br/>language gate + draft decision"]:::mixed
+    GC -- all tasks done --> ONBR{"On a feature branch?"}
+    ONBR -- "no: on develop" --> SHIPD["/ship 🤖<br/>validate + archive + push<br/>(skips PR and review)"]:::agent
+    SHIPD --> DONE
+    ONBR -- yes --> PRO["/pr-open 🧑🤖<br/>language gate + draft decision"]:::mixed
     PRO --> CLI{"gh / glab available?"}
     CLI -- yes --> PR["PR created against develop"]:::art
     CLI -- no --> PRF["description in backlog/exports/pr/<br/>you open the PR manually 🧑"]:::human
@@ -91,7 +96,9 @@ flowchart TD
 
 > **"Spec wrong or drifted?"** — checkpoint during implementation. *Wrong*: while coding you discover a requirement or scenario was incorrect or incomplete. *Drifted*: `openspec/specs/` no longer matches what the code actually does (hotfixes, old unspec'd commits). In both cases the rule is the same: never diverge silently — run `/opsx:sync` to fix the spec first, then resume `/opsx:apply`. Code must always trace back to a correct spec.
 
-Human checkpoints, summarized: the `/req-capture` interview, every language gate (es/en, mandatory on client-facing text), commit message approval, pasting Jira exports and recording `jira_key`, PR code review, and merging via web UI when no platform CLI exists. Everything else runs agentically.
+> **Branch policy** — `main` is release-only and never worked on directly. `git.work_mode` in `workflow.yaml` decides the rest: `flexible` (default) lets you implement and commit directly on the integration branch — `/ship` then just validates, archives, and pushes, skipping PR and review; `feature` makes feature branches + PR mandatory. A mandatory **branch gate** runs before `/opsx:apply` writes any code: the working branch must be resolved (created and checked out) first; `/git-commit` re-checks at commit time as a safety net. Feature branches are named `feature/<jira_key>-<change>` when the linked story has a `jira_key` (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise.
+
+Human checkpoints, summarized: the `/req-capture` interview, every language gate (es/en, mandatory on client-facing text), choosing where to implement (feature branch vs develop), commit message approval, pasting Jira exports and recording `jira_key`, PR code review, and merging via web UI when no platform CLI exists. Everything else runs agentically.
 
 Traceability chain: **Discovery → Story → Change → Task → Commit → PR**. Each link is recorded where it happens: story frontmatter (`change:`), commit footers (`Change:`/`Task:`/`Story:`), PR description.
 

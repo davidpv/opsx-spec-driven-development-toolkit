@@ -2,11 +2,13 @@
 description: Open a PR for the current change against the integration branch (platform-agnostic)
 ---
 
-Open a pull/merge request for the change `$ARGUMENTS` (or the one inferred from the current branch).
+Open a pull/merge request for the change `$ARGUMENTS` (or the one inferred from the current branch — strip a leading Jira key like `PROJ-123-` from the branch name before matching against `openspec/changes/`).
 
 **Steps**
 
-1. Read `workflow.yaml` (`git.integration_branch`, `platform.provider`). Verify: working tree clean, branch is `feature/<change>`, all tasks in `tasks.md` checked. If tasks remain, list them and ask whether to continue as draft.
+1. Read `workflow.yaml` (`git.integration_branch`, `git.work_mode`, `platform.provider`). Verify: working tree clean, all tasks in `tasks.md` checked. If tasks remain, list them and ask whether to continue as draft.
+
+   If the current branch IS the integration branch (flexible mode), there is nothing to open a PR against: tell the user, and offer either (a) skip the PR and go straight to `/ship`, or (b) move the unpushed commits to a new feature branch (named `feature/<jira_key>-<change>` if the linked story has a `jira_key`, else `feature/<change>`) via `git branch <name> && git reset --hard origin/<integration>` to get a reviewed PR.
 
 2. Run `/review-change <change>` (spec-reviewer). On REVISE, show findings and stop unless the user overrides.
 

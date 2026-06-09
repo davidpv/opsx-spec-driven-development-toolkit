@@ -17,8 +17,8 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
 2. **Propose** — `/opsx:propose <change-name>` creates `openspec/changes/<name>/` with proposal, delta specs, design, and tasks. If the change implements a story, the proposal references its ID and the story frontmatter gets `change: <name>`.
 3. **Specify & plan** — Delta specs (requirements + GIVEN/WHEN/THEN) as ADDED/MODIFIED/REMOVED; `design.md` for the approach; `tasks.md` for checkable steps.
 4. **Review** — `/review-change <name>` audits the change before implementation.
-5. **Implement** — `/opsx:apply` on a `feature/<change>` branch. Commit with `/git-commit`: conventional commits whose footer traces `Change:`/`Task:`/`Story:`.
-6. **Deliver** — `/pr-open` creates the PR against the integration branch (`workflow.yaml`); `/ship` validates, runs `/opsx:archive`, merges, and closes the story.
+5. **Implement** — `/opsx:apply`. **Branch gate (mandatory, BEFORE writing any code):** check the current branch first. Never implement on `main`. With `work_mode: feature`, create and switch to the feature branch (naming rule below) before touching any file. With `work_mode: flexible`, ask the user where to implement — feature branch (recommended) or directly on the integration branch — and create/switch accordingly before the first edit. Then commit with `/git-commit`: conventional commits whose footer traces `Change:`/`Task:`/`Story:`.
+6. **Deliver** — feature branch: `/pr-open` creates the PR against the integration branch, `/ship` validates, archives, merges and closes the story. Integration branch: skip `/pr-open`; `/ship` validates, archives and pushes (no PR, no review).
 
 Traceability chain: **Discovery → Story → Change → Task → Commit → PR**.
 
@@ -31,7 +31,9 @@ Traceability chain: **Discovery → Story → Change → Task → Commit → PR*
 - Validate before archiving: `openspec validate <change> --strict`.
 - `workflow.yaml` at the repo root defines branches, commit convention, and Jira/export settings. Pipeline commands read it; never hardcode branch names or platforms.
 - Story frontmatter (`status`, `change`, `jira_key`) is the pipeline state of a story. Commands keep it updated; don't bypass it.
-- Never commit directly to `main` or the integration branch.
+- Never commit directly to `main` (release branch only). Working on the integration branch is allowed when `git.work_mode: flexible` in `workflow.yaml`; feature branches + PR are still the recommended path when code review matters. With `work_mode: feature`, a feature branch is mandatory.
+- Feature branch naming: `feature/<jira_key>-<change>` when the linked story has a `jira_key` (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise. When inferring the change from a branch name, strip the leading Jira key.
+- **Branch gate**: no implementation work starts until the working branch is resolved (created and checked out). This applies to `/opsx:apply` and to any ad-hoc code edit. `/git-commit` re-checks at commit time as a safety net, but the gate must run first — don't rely on the net.
 - **Client-facing content language**: any command or agent that generates text exposed to the client (discovery docs, user stories, Jira exports, PR descriptions) MUST ask the user whether to write it in castellano or English before generating — every time, preselecting `content.default_language` from `workflow.yaml`. Never assume the language.
 
 ## Repository layout

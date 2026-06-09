@@ -2,9 +2,18 @@
 # Tool-agnostic: any agent (opencode, Claude Code, etc.) can read this file.
 
 git:
-  main_branch: main            # release branch
+  main_branch: main            # release branch — protected, never worked on directly
   integration_branch: develop  # PRs target this branch (git-flow)
-  branch_prefix: feature/      # branches are <prefix><change-name>
+  branch_prefix: feature/
+  # Branch naming: if the change's linked story has a jira_key, branches are
+  # <prefix><jira_key>-<change-name> (e.g. feature/PROJ-123-speed-up-search);
+  # otherwise <prefix><change-name>. Commands parse both forms when inferring
+  # the change from the branch name.
+  # Working mode for implementation:
+  #   feature  → always require feature/<change> branches + PR (strict)
+  #   flexible → feature branches recommended, but committing directly on the
+  #              integration branch is allowed; /ship then skips PR/merge
+  work_mode: flexible
   commit_convention: conventional  # https://www.conventionalcommits.org
   commit_scope_from: change    # scope = openspec change name unless overridden
 
