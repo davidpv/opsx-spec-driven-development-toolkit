@@ -1,0 +1,27 @@
+# Workflow configuration — read by the .opencode/commands/* pipeline commands.
+# Tool-agnostic: any agent (opencode, Claude Code, etc.) can read this file.
+
+git:
+  main_branch: main            # release branch
+  integration_branch: develop  # PRs target this branch (git-flow)
+  branch_prefix: feature/      # branches are <prefix><change-name>
+  commit_convention: conventional  # https://www.conventionalcommits.org
+  commit_scope_from: change    # scope = openspec change name unless overridden
+
+platform:
+  provider: auto               # auto | github | gitlab | none
+  # auto: detect from `git remote get-url origin`; use gh/glab CLI if available.
+  # none: never call a CLI; write the PR description to backlog/exports/pr/.
+
+jira:
+  project_key: PROJ            # used to prefix exported issue keys
+  export_dir: backlog/exports/jira
+  issue_type_map:
+    story: Story
+    bug: Bug
+    task: Task
+
+backlog:
+  discovery_dir: backlog/discovery
+  stories_dir: backlog/stories
+  story_id_prefix: US          # stories are US-001, US-002, ...

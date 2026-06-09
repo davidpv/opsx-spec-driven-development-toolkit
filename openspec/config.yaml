@@ -1,0 +1,25 @@
+schema: spec-driven
+
+# Project context — shown to AI when creating artifacts.
+# TEMPLATE NOTE: when instantiating this template for a real project,
+# replace the placeholder lines with your actual stack and conventions.
+context: |
+  This repository follows spec-driven development with OpenSpec.
+  Traceability chain: Requirement -> Scenario -> Task -> Code.
+  Tech stack: <fill in when instantiating the template>
+  Conventions: conventional commits; one concern per change; one change per branch.
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Always include a "Non-goals" section
+    - Keep proposals under 500 words
+  specs:
+    - Use RFC-2119 keywords (MUST/SHALL/SHOULD/MAY)
+    - Every requirement needs at least one GIVEN/WHEN/THEN scenario
+    - No implementation details in requirements
+  design:
+    - Record alternatives considered and why they were rejected
+  tasks:
+    - Each task must map to a requirement or design decision
+    - Break tasks into chunks of max 2 hours
