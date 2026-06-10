@@ -60,7 +60,16 @@ Implement tasks from an OpenSpec change.
    - Remaining tasks overview
    - Dynamic instruction from CLI
 
-6. **Implement tasks (loop until done or blocked)**
+6. **Verify git branch**
+   
+   Before writing any code:
+   - Check current branch with git branch --show-current
+   - read workflow.yaml to get the git.work_mode
+   - if work_mode is feature ask for the jira-id.
+   - if work_mode is feature and I am on main or develop, create the feature branch and change to it. 
+   - Show branch name following rule: feature/<change-name> o feature/<jira-id>-<change-name>
+
+7. **Implement tasks (loop until done or blocked)**
 
    For each pending task:
    - Show which task is being worked on
@@ -75,7 +84,7 @@ Implement tasks from an OpenSpec change.
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **On completion or pause, show status**
+8. **On completion or pause, show status**
 
    Display:
    - Tasks completed this session
