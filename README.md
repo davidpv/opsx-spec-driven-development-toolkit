@@ -4,6 +4,32 @@ A reusable, stack-agnostic base for working with **spec-driven development** on 
 
 The core idea: **Spec → Plan → Code.** Code is the last artifact produced, never the first. OpenSpec structures every change as proposal + specs + design + tasks, and opencode executes the implementation with full traceability back to the requirements.
 
+## The model: task-managed, spec-driven
+
+Two planes coexist and must not be confused. The **management plane** (Jira vocabulary) decides *what work exists and tracks it*; the **governance plane** (OpenSpec) decides *how the system must behave* — and only the latter authorizes code:
+
+```mermaid
+flowchart LR
+    subgraph MGMT["Management plane — what work exists (Jira)"]
+        direction LR
+        D["Discovery<br/>backlog/discovery/"] --> T["Task PROJ-123<br/>backlog/tasks/<br/>goal + acceptance criteria"]
+    end
+
+    subgraph GOV["Governance plane — how the system must behave (OpenSpec)"]
+        direction LR
+        C["Change<br/>proposal + delta specs<br/>+ design + steps"] -- "/opsx:archive" --> S["openspec/specs/<br/>SOURCE OF TRUTH"]
+        S -. "read before proposing" .-> C
+    end
+
+    CODE["Code<br/>feature branch, commits, PR"]
+
+    T -- "a task authorizes NO code<br/>it only motivates a change" --> C
+    C -- "the ONLY gate to code" --> CODE
+    CODE -. "traces back: Jira / Change / Task footers" .-> T
+```
+
+A task being well written changes nothing: implementation starts only when an OpenSpec change exists, is reviewed, and its branch gate is resolved. If a task ever contains design or implementation detail, that content belongs in the change — `task-reviewer` flags it. This is what keeps the workflow *spec-driven* even though the backlog speaks Jira: **Jira rules the backlog, the spec rules the code.**
+
 ## Quick start
 
 ```bash
