@@ -19,6 +19,8 @@ Create a conventional commit for the staged/pending work. `$ARGUMENTS` may name 
 
 4. Show the message, commit on approval, then tick the completed task(s) in `tasks.md` and amend or include that in the commit.
 
+5. Suggest the next step: if `tasks.md` has unchecked steps, `/opsx:apply` to continue; if all are done, `/pr-open` (feature branch) or `/ship` (integration branch).
+
 Branch policy (`git.work_mode` in `workflow.yaml`):
 - On `main`: never commit. Offer to switch to the integration branch or create a feature branch.
 - On the integration branch: allowed if `work_mode: flexible` (confirm with the user the first time in the session); if `work_mode: feature`, offer to create a feature branch first.

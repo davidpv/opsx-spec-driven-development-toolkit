@@ -22,6 +22,15 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
 
 Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → Commit → PR**. Note: "task" means a backlog/Jira task; tasks.md inside a change holds implementation steps.
 
+## Guided flow
+
+The pipeline is guided: the user should never have to remember what comes next.
+
+- **Every pipeline command ends by suggesting the next step** — one concrete command with a one-line reason (e.g. after `/task-enrich`: "next: `/task-jira PROJ-123` to export, or `/opsx:propose` to start building").
+- **After implementation work** — whenever `/opsx:apply` finishes a step (or any ad-hoc code edit completes), suggest `/git-commit`. When the last step of `tasks.md` is checked, suggest `/pr-open` (feature branch) or `/ship` (integration branch). After `/ship`, list pending backlog tasks and suggest the highest-priority one.
+- **`/next` is the recovery point** — when the user seems lost, returns after a break, or asks "what now?", run the `/next` logic: inspect git state, task frontmatter, and change artifacts, then report where they are and the single best next action.
+- Suggestions are advice, not actions: never run the suggested command without the user asking.
+
 ## Rules for agents
 
 - `openspec/specs/` is the source of truth for current system behavior. Read it before proposing changes; never edit it directly — it only changes via `/opsx:archive`.
