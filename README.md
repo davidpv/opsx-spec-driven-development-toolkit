@@ -57,6 +57,8 @@ Then, inside opencode:
 
 Stages 0–1 are optional for small technical changes; everything from `/opsx:propose` on is mandatory.
 
+The flow is **guided**: every command ends by suggesting the next step, and `/next` tells you where you are and what to do whenever you're lost or coming back to the repo (it inspects branch, task frontmatter, change artifacts, and PR state).
+
 ## Workflow
 
 Full map of flows and options. 🧑 = needs human interaction, 🤖 = agentic (runs on its own), 🧑🤖 = agentic with human checkpoint (approval, language gate, or fallback).
@@ -165,6 +167,7 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 
 | Command | Stage | What it does |
 |---------|-------|--------------|
+| `/next` | Any | Detect where you are in the pipeline and suggest the next step |
 | `/req-capture <topic>` | Discover | Guided requirements interview → `backlog/discovery/<topic>.md` |
 | `/task-generate <topic>` | Tasks | Slice a discovery doc into tasks; you provide the Jira IDs |
 | `/task-enrich <id>` | Tasks | Add edge cases, unhappy paths, estimate; runs task-reviewer |
