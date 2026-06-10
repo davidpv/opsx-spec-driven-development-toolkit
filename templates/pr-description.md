@@ -8,7 +8,7 @@
 
 | Artifact | Reference |
 |----------|-----------|
-| User story | <US-XXX — title, or N/A> |
+| Task (Jira) | <PROJ-123 — title, or N/A> |
 | OpenSpec change | `openspec/changes/<name>/` |
 | Spec deltas | <list of ADDED/MODIFIED/REMOVED requirements> |
 

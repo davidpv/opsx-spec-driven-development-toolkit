@@ -5,10 +5,10 @@ git:
   main_branch: main            # release branch — protected, never worked on directly
   integration_branch: develop  # PRs target this branch (git-flow)
   branch_prefix: feature/
-  # Branch naming: if the change's linked story has a jira_key, branches are
-  # <prefix><jira_key>-<change-name> (e.g. feature/PROJ-123-speed-up-search);
-  # otherwise <prefix><change-name>. Commands parse both forms when inferring
-  # the change from the branch name.
+  # Branch naming: if the change is linked to a backlog task with a real Jira
+  # key, branches are <prefix><task-id>-<change-name>
+  # (e.g. feature/PROJ-123-speed-up-search); otherwise <prefix><change-name>.
+  # Commands parse both forms when inferring the change from the branch name.
   # Working mode for implementation:
   #   feature  → always require feature/<change> branches + PR (strict)
   #   flexible → feature branches recommended, but committing directly on the
@@ -23,12 +23,9 @@ platform:
   # none: never call a CLI; write the PR description to backlog/exports/pr/.
 
 jira:
-  project_key: PROJ            # used to prefix exported issue keys
+  project_key: PROJ            # task IDs are <project_key>-<n>, matching Jira keys
   export_dir: backlog/exports/jira
-  issue_type_map:
-    story: Story
-    bug: Bug
-    task: Task
+  default_issue_type: Task
 
 content:
   # Default language offered for client-facing artifacts (discovery docs,
@@ -38,5 +35,7 @@ content:
 
 backlog:
   discovery_dir: backlog/discovery
-  stories_dir: backlog/stories
-  story_id_prefix: US          # stories are US-001, US-002, ...
+  tasks_dir: backlog/tasks
+  # Task IDs ARE Jira keys: <jira.project_key>-<n>, provided by the user.
+  # If the Jira issue doesn't exist yet, use <project_key>-D<nn> (draft) and
+  # rename the file/frontmatter when the real key is known.

@@ -18,9 +18,9 @@ Then, inside opencode:
 
 ```
 /req-capture checkout-flow        # 0. requirements interview → discovery doc
-/story-generate checkout-flow     # 1. INVEST user stories (US-NNN)
-/story-enrich US-001              #    edge cases, scenarios, estimate
-/story-jira US-001                #    export as Jira wiki markup
+/task-generate checkout-flow      # 1. tasks with Jira IDs (PROJ-123)
+/task-enrich PROJ-123             #    edge cases, scenarios, estimate
+/task-jira PROJ-123               #    export as Jira wiki markup
 /opsx:propose speed-up-search     # 2. proposal + delta specs + design + tasks
 /review-change speed-up-search    # 3. audit before building
 /opsx:apply                       # 4. implement task by task
@@ -47,15 +47,15 @@ flowchart TD
     %% Product phase (optional)
     SIZE -- initiative --> RC["/req-capture 🧑<br/>interview + language gate"]:::human
     RC --> DISC["backlog/discovery/topic.md"]:::art
-    DISC --> SG["/story-generate 🧑🤖<br/>language gate, then INVEST slicing"]:::mixed
-    SG --> ST["backlog/stories/US-NNN.md"]:::art
-    ST --> SE["/story-enrich 🤖<br/>asks only on ambiguity"]:::agent
-    SE --> RS["/review-story 🤖"]:::agent
+    DISC --> SG["/task-generate 🧑🤖<br/>language gate + Jira IDs from user"]:::mixed
+    SG --> ST["backlog/tasks/PROJ-123.md"]:::art
+    ST --> SE["/task-enrich 🤖<br/>asks only on ambiguity"]:::agent
+    SE --> RS["/review-task 🤖"]:::agent
     RS -- REVISE --> SE
     RS -- APPROVE --> JIRAQ{"Export to Jira?"}
-    JIRAQ -- yes --> SJ["/story-jira 🧑🤖<br/>language gate + translation"]:::mixed
+    JIRAQ -- yes --> SJ["/task-jira 🧑🤖<br/>language gate + translation"]:::mixed
     SJ --> JEXP["backlog/exports/jira/"]:::art
-    JEXP --> PASTE["paste into Jira & set jira_key 🧑"]:::human
+    JEXP --> PASTE["paste into Jira & confirm real key 🧑"]:::human
     JIRAQ -- no --> PROP
     PASTE --> PROP
 
@@ -89,18 +89,18 @@ flowchart TD
     PR --> REVIEW["code review & approval 🧑"]:::human
     REVIEW --> SHIP["/ship 🤖<br/>validate + archive + merge"]:::agent
     SHIP --> MERGEQ{"CLI + CI green?"}
-    MERGEQ -- yes --> DONE(["change archived, story done, branch deleted"])
+    MERGEQ -- yes --> DONE(["change archived, task done, branch deleted"])
     MERGEQ -- no --> WEBUI["merge in web UI 🧑"]:::human
     WEBUI --> DONE
 ```
 
 > **"Spec wrong or drifted?"** — checkpoint during implementation. *Wrong*: while coding you discover a requirement or scenario was incorrect or incomplete. *Drifted*: `openspec/specs/` no longer matches what the code actually does (hotfixes, old unspec'd commits). In both cases the rule is the same: never diverge silently — run `/opsx:sync` to fix the spec first, then resume `/opsx:apply`. Code must always trace back to a correct spec.
 
-> **Branch policy** — `main` is release-only and never worked on directly. `git.work_mode` in `workflow.yaml` decides the rest: `flexible` (default) lets you implement and commit directly on the integration branch — `/ship` then just validates, archives, and pushes, skipping PR and review; `feature` makes feature branches + PR mandatory. A mandatory **branch gate** runs before `/opsx:apply` writes any code: the working branch must be resolved (created and checked out) first; `/git-commit` re-checks at commit time as a safety net. Feature branches are named `feature/<jira_key>-<change>` when the linked story has a `jira_key` (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise.
+> **Branch policy** — `main` is release-only and never worked on directly. `git.work_mode` in `workflow.yaml` decides the rest: `flexible` (default) lets you implement and commit directly on the integration branch — `/ship` then just validates, archives, and pushes, skipping PR and review; `feature` makes feature branches + PR mandatory. A mandatory **branch gate** runs before `/opsx:apply` writes any code: the working branch must be resolved (created and checked out) first; `/git-commit` re-checks at commit time as a safety net. Feature branches are named `feature/<task id>-<change>` when the change is linked to a backlog task with a real Jira key (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise.
 
-Human checkpoints, summarized: the `/req-capture` interview, every language gate (es/en, mandatory on client-facing text), choosing where to implement (feature branch vs develop), commit message approval, pasting Jira exports and recording `jira_key`, PR code review, and merging via web UI when no platform CLI exists. Everything else runs agentically.
+Human checkpoints, summarized: the `/req-capture` interview, every language gate (es/en, mandatory on client-facing text), choosing where to implement (feature branch vs develop), commit message approval, providing Jira IDs and pasting Jira exports, PR code review, and merging via web UI when no platform CLI exists. Everything else runs agentically.
 
-Traceability chain: **Discovery → Story → Change → Task → Commit → PR**. Each link is recorded where it happens: story frontmatter (`change:`), commit footers (`Change:`/`Task:`/`Story:`), PR description.
+Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → Commit → PR**. Each link is recorded where it happens: task frontmatter (`change:`), commit footers (`Change:`/`Task:`/`Jira:`), PR description. Task IDs ARE Jira keys (`PROJ-123`, provided by you; `PROJ-Dnn` drafts until the issue exists). Note the naming: a *task* is a backlog/Jira work item; `tasks.md` inside a change holds implementation steps.
 
 Each change lives in `openspec/changes/<name>/` until archived. Archiving merges its delta specs into `openspec/specs/`, the living description of how the system behaves. `workflow.yaml` configures branches (git-flow by default: `feature/* → develop`), commit convention, and Jira export — commands read it, so the pipeline stays platform-agnostic.
 
@@ -111,19 +111,19 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 ├── AGENTS.md                  # Rules every agent must follow
 ├── opencode.json              # opencode project config
 ├── workflow.yaml              # Pipeline config: branches, commits, Jira (tool-agnostic)
-├── templates/                 # discovery.md, user-story.md, pr-description.md
+├── templates/                 # discovery.md, task.md, pr-description.md
 ├── backlog/
 │   ├── discovery/             # Requirements-gathering notes (/req-capture)
-│   ├── stories/               # User stories US-NNN (/story-generate, /story-enrich)
+│   ├── tasks/                 # Tasks with Jira IDs (/task-generate, /task-enrich)
 │   └── exports/               # jira/ (wiki markup) and pr/ (fallback PR descriptions)
 ├── .opencode/
 │   ├── agents/
 │   │   ├── spec-reviewer.md   # Subagent: audits changes before apply/archive
-│   │   └── story-reviewer.md  # Subagent: audits stories (INVEST, testability)
+│   │   └── task-reviewer.md   # Subagent: audits tasks (sizing, testability)
 │   ├── commands/
 │   │   ├── req-capture.md     # /req-capture — requirements interview
-│   │   ├── story-*.md         # /story-generate|enrich|jira
-│   │   ├── review-*.md        # /review-change, /review-story
+│   │   ├── task-*.md          # /task-generate|enrich|jira
+│   │   ├── review-*.md        # /review-change, /review-task
 │   │   ├── git-commit.md      # /git-commit — semantic commits with traceability
 │   │   ├── pr-open.md         # /pr-open — platform-agnostic PR creation
 │   │   ├── ship.md            # /ship — validate + archive + merge
@@ -140,18 +140,18 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 | Command | Stage | What it does |
 |---------|-------|--------------|
 | `/req-capture <topic>` | Discover | Guided requirements interview → `backlog/discovery/<topic>.md` |
-| `/story-generate <topic>` | Stories | Slice a discovery doc into INVEST stories (US-NNN) |
-| `/story-enrich <id>` | Stories | Add edge cases, unhappy paths, estimate; runs story-reviewer |
-| `/review-story <id>` | Stories | Audit a story: INVEST, testability, traceability |
-| `/story-jira <id\|all>` | Stories | Export stories as Jira wiki markup to `backlog/exports/jira/` |
+| `/task-generate <topic>` | Tasks | Slice a discovery doc into tasks; you provide the Jira IDs |
+| `/task-enrich <id>` | Tasks | Add edge cases, unhappy paths, estimate; runs task-reviewer |
+| `/review-task <id>` | Tasks | Audit a task: sizing, testability, traceability |
+| `/task-jira <id\|all>` | Tasks | Export tasks as Jira wiki markup to `backlog/exports/jira/` |
 | `/opsx:propose <name>` | Spec | Create a change: proposal, delta specs, design, tasks |
 | `/opsx:explore` | Spec | Investigate the codebase/specs before proposing |
 | `/review-change <name>` | Spec | Spec-reviewer audit + `openspec validate --strict` |
 | `/opsx:apply` | Build | Implement the tasks of a change |
-| `/git-commit` | Build | Conventional commit traced to change/task/story |
+| `/git-commit` | Build | Conventional commit traced to change/step/Jira task |
 | `/opsx:sync` | Build | Sync specs with reality when they drift |
 | `/pr-open [name]` | Deliver | Create the PR against the integration branch (gh/glab/file fallback) |
-| `/ship [name]` | Deliver | Validate + `/opsx:archive` + merge + close the story |
+| `/ship [name]` | Deliver | Validate + `/opsx:archive` + merge + close the task |
 | `/opsx:archive` | Deliver | Merge delta specs into `openspec/specs/` and file the change |
 
 ## Using this template for a new project

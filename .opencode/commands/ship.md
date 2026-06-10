@@ -16,7 +16,7 @@ Ship the change `$ARGUMENTS` (or the one inferred from the current branch — st
 
 4. **Close the loop** —
    - If on a feature branch: `git checkout <integration_branch> && git pull`, delete the local feature branch.
-   - Update the linked story: `status: done`.
-   - If the story has a `jira_key`, remind the user to transition the Jira issue (we don't have API access).
+   - Update the linked task: `status: done`.
+   - If the task's `id` is a real Jira key, remind the user to transition the Jira issue (we don't have API access).
 
-5. Report: change archived, PR merged, story closed — and list any follow-up stories from the same discovery still pending.
+5. Report: change archived, work merged, task closed — and list any follow-up tasks from the same discovery still pending.

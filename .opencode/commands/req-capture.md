@@ -23,4 +23,4 @@ Capture requirements for the topic `$ARGUMENTS` through a structured interview, 
 
 4. Write `backlog/discovery/<topic>.md` from `templates/discovery.md`. Unanswered items go to **Open questions** — never invent answers.
 
-5. Suggest the next step: `/story-generate <topic>`.
+5. Suggest the next step: `/task-generate <topic>`.

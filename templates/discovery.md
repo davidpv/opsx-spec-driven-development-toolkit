@@ -1,6 +1,6 @@
 # Discovery — <topic>
 
-> Output of `/req-capture`. Raw material for `/story-generate`.
+> Output of `/req-capture`. Raw material for `/task-generate`.
 
 ## Context
 
@@ -23,4 +23,4 @@
 
 ## Open questions
 
-<!-- Anything unresolved. /story-generate must not invent answers to these. -->
+<!-- Anything unresolved. /task-generate must not invent answers to these. -->
