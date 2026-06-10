@@ -39,6 +39,7 @@
       "du *": "allow",
       "df *": "allow",
       "env": "allow",
+      "date": "allow",
 
       "git status": "allow",
       "git status *": "allow",
