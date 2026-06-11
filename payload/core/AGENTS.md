@@ -13,7 +13,7 @@ If a request arrives as "build X" and there is no OpenSpec change for it, your f
 The full pipeline runs from requirements to merge. Stages 0–1 are optional for trivial changes; stages 2–6 are mandatory.
 
 0. **Discover** — `/req-capture <topic>` interviews the user and writes `backlog/discovery/<topic>.md`. No invented answers: unknowns go to Open questions.
-1. **Tasks** — `/task-generate <topic>` slices the discovery into tasks under `backlog/tasks/`. Task IDs ARE Jira keys (`<project_key>-<n>`, provided by the user; `-Dnn` drafts until the issue exists). `/task-enrich <id>` adds edge cases, estimates, and unhappy paths; `/review-task <id>` audits; `/task-jira <id>` exports Jira wiki markup to `backlog/exports/jira/`.
+1. **Tasks** — `/task-generate <topic>` slices the discovery into tasks under `backlog/tasks/`. Alternative entries: `/task-import <key>` normalizes an existing Jira ticket (pasted by the user) into the backlog; `/task-new <title>` creates a single task without a discovery doc. Task IDs ARE Jira keys (`<project_key>-<n>`, provided by the user; `-Dnn` drafts until the issue exists). `/task-enrich <id>` adds edge cases, estimates, and unhappy paths; `/review-task <id>` audits; `/task-jira <id>` exports Jira wiki markup to `backlog/exports/jira/` (not needed for imported tickets).
 2. **Propose** — `/opsx:propose <change-name>` creates `openspec/changes/<name>/` with proposal, delta specs, design, and tasks. If the change implements a backlog task, the proposal references its ID and the task frontmatter gets `change: <name>`.
 3. **Specify & plan** — Delta specs (requirements + GIVEN/WHEN/THEN) as ADDED/MODIFIED/REMOVED; `design.md` for the approach; `tasks.md` for checkable steps.
 4. **Review** — `/review-change <name>` audits the change before implementation.
@@ -26,6 +26,7 @@ Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step →
 
 The pipeline is guided: the user should never have to remember what comes next.
 
+- **`/start` is the entry point** — when work begins, it asks which situation applies and routes accordingly: an existing Jira ticket (`/task-import <key>`, user pastes the ticket), no ticket and propose directly (`/opsx:explore` → `/opsx:propose`), or no ticket and the task must exist first (`/req-capture` for initiatives, `/task-new` for a single task).
 - **Every pipeline command ends by suggesting the next step** — one concrete command with a one-line reason (e.g. after `/task-enrich`: "next: `/task-jira PROJ-123` to export, or `/opsx:propose` to start building").
 - **After implementation work** — whenever `/opsx:apply` finishes a step (or any ad-hoc code edit completes), suggest `/git-commit`. When the last step of `tasks.md` is checked, suggest `/pr-open` (feature branch) or `/ship` (integration branch). After `/ship`, list pending backlog tasks and suggest the highest-priority one.
 - **`/next` is the recovery point** — when the user seems lost, returns after a break, or asks "what now?", run the `/next` logic: inspect git state, task frontmatter, and change artifacts, then report where they are and the single best next action.

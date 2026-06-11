@@ -1,0 +1,43 @@
+{
+  "name": "opsx",
+  "version": "0.1.0",
+  "description": "Spec-driven development toolkit — scaffolds a task-managed, OpenSpec-governed workflow for opencode, Claude Code and Codex",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "opsx": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "payload"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "e2e": "npm run build && node scripts/e2e.mjs"
+  },
+  "keywords": [
+    "spec-driven-development",
+    "openspec",
+    "opencode",
+    "claude-code",
+    "codex",
+    "scaffold",
+    "workflow"
+  ],
+  "dependencies": {
+    "@clack/prompts": "^0.10.1",
+    "commander": "^13.1.0",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3"
+  }
+}

@@ -15,7 +15,7 @@ Inspect the repository state and tell the user exactly where they are in the pip
 
 | State | Suggest |
 |-------|---------|
-| Nothing in backlog, no in-flight change | `/req-capture <topic>` for an initiative, or `/opsx:propose` for a direct change |
+| Nothing in backlog, no in-flight change | `/start` — guided entry: existing Jira ticket (`/task-import`), direct proposal (`/opsx:propose`), or create the task first (`/task-new`, `/req-capture`) |
 | Discovery doc without tasks | `/task-generate <topic>` |
 | Tasks with `status: draft` | `/task-enrich <id>` (list them) |
 | Enriched tasks not exported and no `change:` | `/task-jira <id>` (optional) and/or `/opsx:propose` |
