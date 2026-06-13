@@ -1,5 +1,7 @@
 # opsx — Spec-Driven Development Toolkit
 
+[![npm version](https://img.shields.io/npm/v/@davidpv/opsx.svg)](https://www.npmjs.com/package/@davidpv/opsx)
+
 A stack-agnostic CLI that scaffolds **spec-driven development** on top of [OpenSpec](https://github.com/Fission-AI/OpenSpec), for any of [opencode](https://opencode.ai), [Claude Code](https://docs.claude.com/en/docs/claude-code) and [Codex](https://developers.openai.com/codex).
 
 The core idea: **Spec → Plan → Code.** Code is the last artifact produced, never the first. OpenSpec structures every change as proposal + specs + design + tasks, and opencode executes the implementation with full traceability back to the requirements.
@@ -32,7 +34,7 @@ A task being well written changes nothing: implementation starts only when an Op
 
 ## Prerequisites
 
-To run `opsx init` itself you only need **Node.js >= 18** (`npx opsx init` works with nothing else installed — it just writes files). To actually *use* the workflow it scaffolds, you need:
+To run `opsx init` itself you only need **Node.js >= 18** (`npx @davidpv/opsx init` works with nothing else installed — it just writes files). To actually *use* the workflow it scaffolds, you need:
 
 | Requirement | Needed for | Install |
 |---|---|---|
@@ -47,9 +49,9 @@ You don't need all three agent CLIs — only the ones you selected as targets du
 
 ```bash
 # In your existing project
-npx opsx init          # pick targets: opencode / Claude Code / Codex, configure branches, Jira key, language
-npx opsx doctor        # verify required tooling (openspec CLI, agent CLIs)
-npx opsx update        # after upgrading opsx: refresh managed files, your local edits are kept
+npx @davidpv/opsx init          # pick targets: opencode / Claude Code / Codex, configure branches, Jira key, language
+npx @davidpv/opsx doctor        # verify required tooling (openspec CLI, agent CLIs)
+npx @davidpv/opsx update        # after upgrading opsx: refresh managed files, your local edits are kept
 ```
 
 `init` writes the shared, tool-agnostic layer once (`workflow.yaml`, `AGENTS.md` managed block, `backlog/`, `templates/`, `openspec/`) and a native layer per agent: `.opencode/` (commands + skills + agents + `opencode.json` merge), `.claude/` (commands + skills + subagents + `settings.json` merge + `CLAUDE.md` importing `AGENTS.md`), `.codex/skills/` (skills; commands and reviewers compiled as skills, since Codex has no project-level slash commands or subagents).
