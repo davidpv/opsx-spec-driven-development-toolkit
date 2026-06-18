@@ -21,7 +21,7 @@ language: ~          # es | en — set by /task-generate after asking the user
 
 ## Acceptance criteria
 
-```gherkin
+```
 Scenario: <name>
   Given <precondition>
   When <action>
