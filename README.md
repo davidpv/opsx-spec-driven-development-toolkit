@@ -10,6 +10,8 @@ The core idea: **Spec → Plan → Code.** Code is the last artifact produced, n
 
 Two planes coexist and must not be confused. The **management plane** (Jira vocabulary) decides *what work exists and tracks it*; the **governance plane** (OpenSpec) decides *how the system must behave* — and only the latter authorizes code:
 
+![opsx demo](https://raw.githubusercontent.com/davidpv/opsx-spec-driven-development-toolkit/main/docs/opsx-demo.gif)
+
 ```mermaid
 flowchart LR
     subgraph MGMT["Management plane — what work exists (Jira)"]
