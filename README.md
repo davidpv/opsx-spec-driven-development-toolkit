@@ -51,7 +51,7 @@ You don't need all three agent CLIs — only the ones you selected as targets du
 # In your existing project
 npx @davidpv/opsx init          # pick targets: opencode / Claude Code / Codex, configure branches, Jira key, language
 npx @davidpv/opsx doctor        # verify required tooling (openspec CLI, agent CLIs)
-npx @davidpv/opsx update        # after upgrading opsx: refresh managed files, your local edits are kept
+npx @davidpv/opsx update        # after upgrading the opsx package: deploy new commands/skills to your project
 ```
 
 `init` writes the shared, tool-agnostic layer once (`workflow.yaml`, `AGENTS.md` managed block, `backlog/`, `templates/`, `openspec/`) and a native layer per agent: `.opencode/` (commands + skills + agents + `opencode.json` merge), `.claude/` (commands + skills + subagents + `settings.json` merge + `CLAUDE.md` importing `AGENTS.md`), `.codex/skills/` (skills; commands and reviewers compiled as skills, since Codex has no project-level slash commands or subagents).
@@ -211,6 +211,7 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 | `/opsx:sync` | Build | Sync specs with reality when they drift |
 | `/pr-open [name]` | Deliver | Create the PR against the integration branch (gh/glab/file fallback) |
 | `/ship [name]` | Deliver | Validate + `/opsx:archive` + merge + close the task |
+| `/opsx:verify <name>` | Deliver | Validate implementation matches change artifacts (run before archive) |
 | `/opsx:archive` | Deliver | Merge delta specs into `openspec/specs/` and file the change |
 
 ## Using this template for a new project
@@ -220,3 +221,48 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 3. Adjust `workflow.yaml`: branches (git-flow vs trunk-based), Jira project key, platform.
 4. Extend `AGENTS.md` with project-specific rules.
 5. Start with `/start` — it routes you to `/task-import` (existing ticket), `/req-capture`/`/task-new` (create the task first), or `/opsx:propose` (direct change).
+
+## Keeping opsx updated
+
+Since opsx is an evolving toolkit (new commands like `/opsx:verify`, skill improvements, schema updates), keeping it current ensures your workflow stays complete.
+
+### Two-step process
+
+Upgrading the npm package alone does **not** deploy new commands or skills to an existing project — they live in the shipped `payload/` directory and must be written to your project's `.opencode/` (or `.claude/`, `.codex/`) structure by `opsx update`.
+
+```bash
+# Step 1 — upgrade the opsx package itself
+npm update -g @davidpv/opsx
+
+# Or, if installed locally in your project:
+npm update @davidpv/opsx
+
+# Step 2 — deploy new/changed files to your project
+npx @davidpv/opsx update
+```
+
+**Both steps are required.** Step 1 updates the code that `npx` resolves; step 2 writes the new payload files (commands, skills, agents, templates) into your project. If you skip step 2, new capabilities like `/opsx:verify` won't appear even though the package is the latest version.
+
+### What `opsx update` does
+
+The command compares the shipped payload against what's already on disk in your project:
+
+| Scenario | What happens |
+|----------|-------------|
+| **New file** (e.g., `opsx-verify.md` added in a newer opsx version) | Created automatically |
+| **Changed file, not user-modified** | Silently overwritten |
+| **Changed file, user-modified** | Kept as-is (use `opsx update --force` to overwrite) |
+| **`AGENTS.md` managed block** | Only the `<!-- OPSX:START -->` block is refreshed; your surrounding custom rules are preserved |
+| **`opencode.json` / `settings.json`** | New top-level keys merged in; your overrides stay |
+
+To see exactly what changed on the last run, check the output — it lists `Added:`, `Updated:`, and `Kept (not touched):` files.
+
+### Checking your version
+
+```bash
+npm outdated -g @davidpv/opsx     # check if a newer npm version exists
+npx @davidpv/opsx --version       # show installed version
+npx @davidpv/opsx doctor          # verify tooling and project state
+```
+
+New opsx versions are published to npm. Check the [CHANGELOG](https://github.com/anomalyco/opsx-spec-driven-development-toolkit/releases) for breaking changes before updating.
