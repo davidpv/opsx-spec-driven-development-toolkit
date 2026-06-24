@@ -6,6 +6,21 @@ A stack-agnostic CLI that scaffolds **spec-driven development** on top of [OpenS
 
 The core idea: **Spec → Plan → Code.** Code is the last artifact produced, never the first. OpenSpec structures every change as proposal + specs + design + tasks, and opencode executes the implementation with full traceability back to the requirements.
 
+## Install
+
+```bash
+npx @davidpv/opsx init
+```
+
+Or install it globally first if you'd rather call `opsx` directly:
+
+```bash
+npm install -g @davidpv/opsx
+opsx init
+```
+
+That's it — just **Node.js >= 18** and a git repo, nothing else to install upfront. It walks you through picking your agent (opencode / Claude Code / Codex) and writes everything in place. See [Prerequisites](#prerequisites) and [Quick start](#quick-start) below for the rest of the setup.
+
 ## The model: task-managed, spec-driven
 
 Two planes coexist and must not be confused. The **management plane** (Jira vocabulary) decides *what work exists and tracks it*; the **governance plane** (OpenSpec) decides *how the system must behave* — and only the latter authorizes code:
