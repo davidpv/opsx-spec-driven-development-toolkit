@@ -1,6 +1,6 @@
 {
   "name": "@davidpv/opsx",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Spec-driven development toolkit — scaffolds a task-managed, OpenSpec-governed workflow for opencode, Claude Code and Codex",
   "license": "MIT",
   "type": "module",

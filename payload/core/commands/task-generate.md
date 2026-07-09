@@ -8,8 +8,6 @@ Generate tasks from the discovery doc `backlog/discovery/$ARGUMENTS.md` using `t
 
 1. Read the discovery doc. If it doesn't exist, list available ones and ask which to use (or suggest `/req-capture` first).
 
-   **Language gate (mandatory):** ask with **AskUserQuestion** whether the tasks must be written in **castellano** or **English**. Preselect `content.default_language` from `workflow.yaml`, but always ask — these texts end up in front of the client. Record the choice in each task's frontmatter as `language: es|en`.
-
 2. Read `workflow.yaml` (`jira.project_key`, `backlog.tasks_dir`).
 
 3. Slice the functional needs into tasks. Rules:

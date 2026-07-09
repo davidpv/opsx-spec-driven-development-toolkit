@@ -12,8 +12,6 @@ Open a pull/merge request for the change `$ARGUMENTS` (or the one inferred from 
 
 2. Run `/review-change <change>` (spec-reviewer). On REVISE, show findings and stop unless the user overrides.
 
-3. **Language gate (mandatory):** ask with **AskUserQuestion** whether the PR description must be in **castellano** or **English**, preselecting `content.default_language` from `workflow.yaml`.
-
 4. Build the PR description from `templates/pr-description.md`, filling it from `proposal.md`, the delta specs, the branch's commit log, and the linked task (frontmatter `change:` match in `backlog/tasks/`).
 
 5. Detect the platform:
