@@ -12,8 +12,6 @@ Import the existing Jira ticket `$ARGUMENTS` (a real Jira key like `PROJ-123`) i
 
 3. Ask the user to **paste the ticket content**: title, description, acceptance criteria, and any comments worth keeping. Plain text or Jira wiki markup, as-is.
 
-   **Language gate (mandatory):** ask with **AskUserQuestion** whether the task file must be written in **castellano** or **English** — preselect the language of the pasted content if obvious, otherwise `content.default_language` from `workflow.yaml`. Record it in the frontmatter as `language: es|en`.
-
 4. Normalize the paste into `templates/task.md` — restructure, don't rewrite meaning:
    - Frontmatter: `id` = the real Jira key, `status: draft`, `discovery: ~` (no discovery doc), `priority` only if the ticket states one.
    - Ticket description → **Goal** (what & why) and **Context** (background, affected areas).

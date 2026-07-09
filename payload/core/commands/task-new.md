@@ -8,8 +8,6 @@ Create one task in `backlog/tasks/` from scratch using `templates/task.md`. `$AR
 
 1. Read `workflow.yaml` (`jira.project_key`, `backlog.tasks_dir`).
 
-   **Language gate (mandatory):** ask with **AskUserQuestion** whether the task must be written in **castellano** or **English**, preselecting `content.default_language`. Record it as `language: es|en`.
-
 2. **Mini interview** — ask only what's needed to fill the template, one round if possible:
    - **Goal**: what must exist or behave differently, and why.
    - **Context**: affected modules/specs, dependencies.

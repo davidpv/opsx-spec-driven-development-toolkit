@@ -43,8 +43,9 @@ The pipeline is guided: the user should never have to remember what comes next.
 - Task frontmatter (`status`, `change`, `id`) is the pipeline state of a backlog task. Commands keep it updated; don't bypass it.
 - Never commit directly to `main` (release branch only). Working on the integration branch is allowed when `git.work_mode: flexible` in `workflow.yaml`; feature branches + PR are still the recommended path when code review matters. With `work_mode: feature`, a feature branch is mandatory.
 - Feature branch naming: `feature/<task id>-<change>` when the change is linked to a backlog task with a real Jira key (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise. When inferring the change from a branch name, strip the leading Jira key.
+- Always create a feature branch before starting to create the propose, design and tasks artifacts. The branch name is used in the proposal and tasks.md to trace the change.
 - **Branch gate**: no implementation work starts until the working branch is resolved (created and checked out). This applies to `/opsx:apply` and to any ad-hoc code edit. `/git-commit` re-checks at commit time as a safety net, but the gate must run first — don't rely on the net.
-- **Client-facing content language**: any command or agent that generates text exposed to the client (discovery docs, tasks, Jira exports, PR descriptions) MUST ask the user whether to write it in castellano or English before generating — every time, preselecting `content.default_language` from `workflow.yaml`. Never assume the language.
+- All artifacts are written in the language the user configures in `workflow.yaml` (`content.default_language`). 
 
 ## Repository layout
 

@@ -8,8 +8,6 @@ Enrich the task `$ARGUMENTS` (a Jira key like `PROJ-123`, or a path) in `backlog
 
 1. Locate the task file. If the argument is ambiguous or missing, list tasks with `status: draft` and ask.
 
-   **Language gate (mandatory):** if the task has `language:` in its frontmatter, write all additions in that language. If it doesn't, ask with **AskUserQuestion** (castellano or English, preselecting `content.default_language` from `workflow.yaml`) and record it in the frontmatter.
-
 2. Cross-check against `openspec/specs/` and the source discovery doc: does it contradict current behavior? Does it overlap another task?
 
 3. Enrich the task:
