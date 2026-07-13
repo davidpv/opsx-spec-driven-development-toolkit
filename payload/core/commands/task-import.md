@@ -1,10 +1,24 @@
 ---
-description: Import an existing Jira ticket into backlog/tasks/ as a pipeline task
+description: Import an existing Jira ticket into backlog/tasks/ as a pipeline task on the integration branch
 ---
 
 Import the existing Jira ticket `$ARGUMENTS` (a real Jira key like `PROJ-123`) into `backlog/tasks/` using `templates/task.md`. The ticket content is **always pasted by the user** — never fetch it from Jira or invent it.
 
+> **Branch guard (mandatory).** This command MUST run on the integration branch (`develop`, configured as `git.integration_branch` in `workflow.yaml`). It MUST NOT run inside a git worktree. Tasks are management-plane planning artifacts and live on `develop` alongside discovery docs and OpenSpec changes — never in a worktree.
+
 **Steps**
+
+0. **Branch guard**
+
+   ```bash
+   git branch --show-current
+   git worktree list
+   pwd
+   ```
+
+   - Read `git.integration_branch` from `workflow.yaml`.
+   - If the current branch is not the integration branch, refuse and tell the user to `git checkout <integration_branch>` first.
+   - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout.
 
 1. Read `workflow.yaml` (`jira.project_key`, `backlog.tasks_dir`). If `$ARGUMENTS` is missing or doesn't look like a Jira key, ask for it. If the key's project prefix differs from `jira.project_key`, warn but don't block.
 
@@ -21,7 +35,16 @@ Import the existing Jira ticket `$ARGUMENTS` (a real Jira key like `PROJ-123`) i
 
 5. Write `backlog/tasks/<key>-<slug>.md` and run the `task-reviewer` subagent on it.
 
-6. Suggest next, based on the review:
+6. **Commit on `develop` (commit discipline)**
+
+   ```bash
+   git add backlog/tasks/<key>-<slug>.md
+   git commit -m "docs(tasks): import <key> from jira"
+   ```
+
+   Skip only if the user explicitly asks to defer.
+
+7. Suggest next, based on the review:
    - Findings or thin scenarios → `/task-enrich <key>` to fill edge cases and estimate.
    - Solid as imported → `/opsx:propose <change-name>` referencing the task.
    - Never suggest `/task-jira` here — the ticket already exists in Jira.
