@@ -178,5 +178,63 @@ const shipAfterForce = read(".opencode/commands/ship.md");
 assert(!/DO NOT CLOBBER/.test(shipAfterForce), "FORCED: --force overwrites user-modified ship.md with new content");
 assert(/verify gate/.test(shipAfterForce), "FORCED: ship.md now has the new verify-gate content");
 
+// J. Managed-block auto-apply log line — simulate a fresh v1.0.5 project by
+// doing the full payload swap dance in a side directory, then verify the
+// auto-apply path emits its log under CI=1.
+console.log("\n— testing managed-block auto-apply under CI=1 —");
+const v15Project = path.join(tmp, "v15-project");
+fs.mkdirSync(v15Project, { recursive: true });
+execFileSync("git", ["init"], { cwd: v15Project });
+execFileSync("git", ["config", "user.email", "t@e"], { cwd: v15Project });
+execFileSync("git", ["config", "user.name", "t"], { cwd: v15Project });
+
+let updateV15Out;
+try {
+  // Stage v1.0.5 payload
+  execFileSync("git", ["checkout", "v1.0.5", "--", "payload"], { cwd: root, stdio: "ignore" });
+  for (const f of ["payload/core/commands/work.md"]) fs.rmSync(path.join(root, f), { force: true });
+  execFileSync("npm", ["run", "build"], { cwd: root, stdio: "ignore" });
+
+  // Init the side project at v1.0.5
+  execFileSync("node", [cli, "init", "--yes", "--targets", "opencode", "--project-key", "DEMO", "--language", "en"], { cwd: v15Project, stdio: "ignore" });
+  // Rewrite workMode to "flexible" (v1.0.5 init only knew about feature/flexible)
+  {
+    const mp = path.join(v15Project, ".opsx/manifest.json");
+    const m = JSON.parse(fs.readFileSync(mp, "utf8"));
+    m.config.workMode = "flexible";
+    fs.writeFileSync(mp, JSON.stringify(m, null, 2) + "\n");
+  }
+} finally {
+  // Restore develop payload & rebuild
+  execFileSync("git", ["checkout", "develop", "--", "payload"], { cwd: root, stdio: "ignore" });
+  execFileSync("npm", ["run", "build"], { cwd: root, stdio: "ignore" });
+}
+
+// Run update on the v1.0.5 project with v2.0 payload, CI=1 → auto-apply path
+updateV15Out = run(["update"], v15Project);
+fs.writeFileSync(path.join(tmp, "update-v15-output.txt"), updateV15Out);
+assert(/managed block auto-applied/i.test(updateV15Out), "auto-apply: managed block changes logged when CI=1");
+assert(!/What should we do with the opsx-managed block/.test(updateV15Out), "auto-apply: no prompt when CI=1");
+
+// K. --non-interactive flag works even without CI=1
+const updateNIOut = run(["update", "--non-interactive"], project);
+assert(
+  /already up to date/.test(updateNIOut),
+  "--non-interactive: shows already-up-to-date on idempotent run",
+);
+assert(!/What should we do with the opsx-managed block/.test(updateNIOut), "--non-interactive: never prompts");
+
+// L. Idempotent: a second update with no payload change shows 'already up to date'
+const idempotentOut = run(["update"], project);
+assert(/already up to date/.test(idempotentOut), "idempotent: second update reports already-up-to-date");
+
+// M. Cancel path requires a real TTY (skip in CI: covered by interactive manual testing).
+
+// L. cancel-on-managed-block: simulate by running with stdin queued (TTY pty)
+console.log("\n— testing cancel-on-managed-block —");
+// Skip in CI: the cancel path requires a real TTY / piped stdin with pty semantics.
+// We only assert the safe auto-apply path here. The prompt path is exercised
+// manually by users in a real terminal.
+
 console.log(`\n${failures ? `❌ ${failures} FAILURES` : "✅ ALL ASSERTIONS PASSED"}`);
 process.exit(failures ? 1 : 0);

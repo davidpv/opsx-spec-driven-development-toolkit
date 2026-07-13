@@ -1,3 +1,5 @@
+import pc from "picocolors";
+
 const START = "<!-- OPSX:START — managed by opsx, do not edit inside this block -->";
 const END = "<!-- OPSX:END -->";
 
@@ -18,6 +20,25 @@ export function extractManagedBlock(content: string): string | null {
   const end = content.indexOf(END);
   if (start === -1 || end === -1) return null;
   return content.slice(start + START.length, end).trim();
+}
+
+/**
+ * Compact line-level diff for managed-block changes.
+ * Returns a list of `+` / `-` prefixed lines plus a summary `{added, removed}`.
+ * No external deps; intended for clack output, not strict unified-diff format.
+ */
+export function summariseBlockDiff(oldBlock: string, newBlock: string): { added: number; removed: number; preview: string } {
+  const oldLines = oldBlock.split("\n");
+  const newLines = newBlock.split("\n");
+  const oldSet = new Set(oldLines);
+  const newSet = new Set(newLines);
+  const removed = oldLines.filter((l) => !newSet.has(l));
+  const added = newLines.filter((l) => !oldSet.has(l));
+  const preview: string[] = [];
+  for (const l of removed.slice(0, 6)) preview.push(pc.red(`- ${l}`));
+  for (const l of added.slice(0, 6)) preview.push(pc.green(`+ ${l}`));
+  if (removed.length > 6 || added.length > 6) preview.push(pc.dim(`  ... (${Math.max(0, removed.length - 6) + Math.max(0, added.length - 6)} more lines)`));
+  return { added: added.length, removed: removed.length, preview: preview.join("\n") };
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
