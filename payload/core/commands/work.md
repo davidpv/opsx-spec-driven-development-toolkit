@@ -123,15 +123,15 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    |--------|----------|-------|--------|--------|
    | add-auth | .worktrees/add-auth/ | 6/6 ✓ | Clean | `/ship add-auth` |
    | speed-up-search | .worktrees/speed-up-search/ | 4/5 ⚠ | 0 CRITICAL, 2 WARNING | review warnings, then `/ship speed-up-search` |
-   | refactor-errors | .worktrees/refactor-errors/ | 3/7 ✗ | 1 CRITICAL | fix in worktree, then re-run `/opsx:verify refactor-errors` |
+   | refactor-errors | .worktrees/refactor-errors/ | 3/7 ✗ | 1 CRITICAL | re-run `/work refactor-errors` to fix + re-verify |
    ```
 
 6. **What the user does next**
 
    The coordinator suggests the user:
    - For each change with a clean verify, run `/ship <change>` to merge + archive + close.
-   - For each change with WARNING/SUGGESTION, review and decide whether to ship or fix.
-   - For each change with a CRITICAL issue, the user resolves it inside the worktree and re-runs `/opsx:verify <change>`.
+   - For each change with WARNING/SUGGESTION, review and decide whether to ship or re-run `/work <change>` to iterate.
+   - For each change with a CRITICAL issue, re-run `/work <change>` to fix and re-verify it in its worktree.
 
    `/ship` is run **per change, in sequence**, so each merge + archive sees the right view of `develop`. Running `/ship` for change A first means change B's archive runs against a `develop` that already contains A's specs — matches the merge → archive discipline.
 

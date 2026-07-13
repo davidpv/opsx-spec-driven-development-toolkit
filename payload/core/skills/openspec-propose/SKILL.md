@@ -19,7 +19,7 @@ I'll create a change with artifacts:
 - tasks.md (implementation steps)
 - delta specs (ADDED / MODIFIED / REMOVED requirements)
 
-When ready to implement, run `/opsx:apply` (single change) or `/work` (parallel changes via SubAgents).
+When ready to implement, run `/work` — it builds the change in a worktree (apply + verify), fanning out across SubAgents when there are several changes.
 
 ---
 
@@ -93,22 +93,18 @@ When ready to implement, run `/opsx:apply` (single change) or `/work` (parallel 
    c. **If an artifact requires user input** (unclear context):
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
-5. **Commit each artifact individually (commit discipline)**
+5. **Commit all artifacts together in one commit (commit discipline)**
 
-   This is a recovery point. After each artifact is written, stage and commit it on the integration branch:
+   Once every artifact is written, stage them all and create a single commit on the integration branch grouping proposal, design, tasks and delta specs:
 
    ```bash
-   git add <artifact file>
-   git commit -m "<type>(<change>): add <artifact>"
+   git add <change dir>
+   git commit -m "docs(<change>): add change artifacts"
    ```
 
-   Conventional `<type>` per artifact kind:
-   - `proposal.md` → `docs(<change>): add proposal`
-   - `design.md`   → `docs(<change>): add design`
-   - `tasks.md`    → `docs(<change>): add tasks`
-   - `specs/*`     → `docs(<change>): add delta spec for <capability>`
+   The commit groups all artifacts (proposal, design, tasks, delta specs) into one recovery point.
 
-   Skip if the user asks to batch.
+   Skip if the user asks to split them.
 
 6. **Show final status**
 
@@ -124,9 +120,9 @@ When ready to implement, run `/opsx:apply` (single change) or `/work` (parallel 
 After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
-- Confirmation that each artifact was committed individually on the integration branch
+- Confirmation that all artifacts were committed together in one commit on the integration branch
 - What's ready: "All artifacts created and committed on <integration_branch>. Ready for implementation."
-- Prompt: "Run `/opsx:apply` to create a worktree and implement, or `/work` to fan out across SubAgents."
+- Prompt: "Run `/work` to build this change (it creates the worktree, applies, and verifies)."
 
 **Artifact Creation Guidelines**
 
@@ -145,4 +141,4 @@ After completing all artifacts, summarize:
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
-- Verify each artifact is committed on the integration branch before returning
+- Verify all artifacts are committed together in one commit on the integration branch before returning

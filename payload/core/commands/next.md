@@ -13,25 +13,19 @@ Inspect the repository state and tell the user exactly where they are in the pip
 - For each worktree, `.openspec/verify-*.md` or `.openspec/verify.log`: has verify run recently?
 - Open PR if a platform CLI exists (`gh pr status` / `glab mr list`)
 
-**Decision table (first match wins):**
+**Decision table (first match wins).**
+
+Only ever suggest a wrapper command — `/start`, `/work`, or `/ship`. Never suggest a low-level primitive (`/opsx:*`, `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) as the next step; the wrappers invoke those internally. Detect state precisely, but map it to the wrapper for the current phase.
 
 | State | Suggest |
 |-------|---------|
-| Nothing in backlog, no in-flight change | `/start` — guided entry: existing Jira ticket (`/task-import`), direct proposal (`/opsx:propose`), or create the task first (`/task-new`, `/req-capture`) |
-| Discovery doc without tasks | `/task-generate <topic>` |
-| Tasks with `status: draft` | `/task-enrich <id>` (list them) |
-| Enriched tasks not exported and no `change:` | `/task-jira <id>` (optional) and/or `/opsx:propose` |
-| Change with incomplete artifacts (on `develop`) | continue `/opsx:propose` / `/opsx:continue` |
-| Change complete but not reviewed (on `develop`) | `/review-change <name>` |
-| Reviewed on `develop`, no worktree yet | `/opsx:apply <name>` — creates the worktree |
-| Inside `<worktree-dir>/<change>/`, unchecked tasks | `/opsx:apply` (continue, list remaining steps) |
-| Inside worktree, uncommitted changes | `/git-commit` |
-| Inside worktree, all tasks done | `/opsx:verify <name>` (run inside the worktree) |
-| Verify report committed on `feature/<change>`, user on `develop` | `/ship <name>` |
-| PR open or work pushed on integration branch | `/ship <change>` (does verify → merge → archive → cleanup) |
-| Worktree branch merged into `develop`, worktree path still exists | cleanup: tell the user the path so they can `git worktree remove` (or warn that `/ship` did not clean up because `auto_remove: false`) |
-| Multiple active changes | `/work [changes...]` to fan out into parallel worktrees (one SubAgent per change) |
-| Change archived but task not `done` | finish close-out: open the task file, set `status: done`, commit (or rerun `/ship`) |
-| Everything closed | list pending tasks from the backlog, suggest the highest-priority one |
+| Nothing in backlog, no in-flight change | `/start` — guided entry: it routes an existing Jira ticket, a direct proposal, or creating the task first |
+| Work still being set up on `develop` (discovery without tasks, `status: draft` tasks, or a change with incomplete/unreviewed artifacts) | `/start` — it continues the on-ramp: task setup → propose → review |
+| Reviewed proposal on `develop`, not yet built (no worktree, or a worktree with unchecked tasks / uncommitted work / verify not yet run) | `/work <name>` — builds it in a worktree (apply + verify), or resumes an in-progress build |
+| Multiple active changes ready to build | `/work [changes...]` — fans out one SubAgent per non-conflicting change |
+| Build complete and verified (report on `feature/<change>`, PR open, or work pushed) | `/ship <name>` — verify gate → merge → archive → cleanup → close |
+| Worktree branch merged into `develop` but not archived, or worktree path still lingering | `/ship <name>` — re-run to finish archive + cleanup |
+| Change archived but task not `done` | `/ship <name>` — re-run to finish close-out, then `/start` for the next |
+| Everything closed | list pending tasks from the backlog and suggest `/start` on the highest-priority one |
 
-**Output format:** three short sections — *Where you are* (one line), *Next step* (one command with why), *Also possible* (0–2 alternatives, e.g. optional Jira export or `/work` for parallelism). Be terse; no walls of text. `/next` never runs the suggested command — it only prints it.
+**Output format:** three short sections — *Where you are* (one line, may mention the low-level detail so the user understands the state), *Next step* (one wrapper command with why), *Also possible* (0–2 wrapper alternatives). Be terse; no walls of text. `/next` never runs the suggested command — it only prints it.
