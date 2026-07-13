@@ -64,7 +64,7 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
 
    The coordinator (this main session) does **not** write code or create files outside the worktrees itself. Each SubAgent gets its own worktree.
 
-   Use the **Task tool** with `subagent_type: "general-purpose"` (or the runtime-specific equivalent — Claude Code's `Task`, opencode's `task`; whatever the agent exposes). Spawn one SubAgent per change in the parallel group. Provide the SubAgent with:
+   Use the **Task tool** with `subagent_type: "openspec"` (or the runtime-specific equivalent — Claude Code's `Task`, opencode's `task`, Codex's subagent; whatever the agent exposes). The `openspec` agent is the spec-driven-development SubAgent that knows how to run `/opsx:apply` and `/opsx:verify` inside a worktree. Spawn one SubAgent per change in the parallel group. Provide the SubAgent with:
 
    - The change name.
    - The worktree path to create/reuse: `<worktree-dir>/<change>/`.
