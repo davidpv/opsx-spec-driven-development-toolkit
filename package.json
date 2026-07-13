@@ -21,7 +21,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "e2e": "npm run build && node scripts/e2e.mjs"
+    "e2e": "npm run build && node scripts/e2e.mjs",
+    "test:update": "node scripts/update-validation.mjs"
   },
   "keywords": [
     "spec-driven-development",
