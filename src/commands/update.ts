@@ -88,5 +88,13 @@ export async function updateCommand(opts: UpdateOptions, packageVersion: string)
   if (updated.length) p.log.success(`Updated:\n  ${updated.join("\n  ")}`);
   if (kept.length) p.log.warn(`Kept (not touched):\n  ${kept.join("\n  ")}`);
   p.log.info(`${unchanged.length} files already up to date.`);
+
+  if (manifest.config.workMode !== "worktree") {
+    const current = manifest.config.workMode;
+    p.log.info(
+      `Tip: workflow.yaml is on git.work_mode: ${current}. The new default is worktree (one git worktree per change, /opsx:apply creates it). Switch by editing workflow.yaml and setting git.work_mode: worktree.`,
+    );
+  }
+
   p.outro("Done.");
 }

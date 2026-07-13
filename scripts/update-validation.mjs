@@ -75,6 +75,16 @@ const shipRel = ".opencode/commands/ship.md";
 const shipFile = path.join(project, shipRel);
 fs.writeFileSync(shipFile, read(shipRel).replace(/^---$/m, "---\ndescription: my local override — DO NOT CLOBBER\n") + "\n<!-- user note -->\n");
 
+// Simulate a project initialised with the v1.0.5 init: that init only knew
+// about workMode: feature | flexible, and defaulted to flexible. The current
+// build's init defaults to worktree, so rewrite the manifest to match what a
+// true v1.0.5-era user would carry into an upgrade.
+console.log("\n— rewrite manifest.workMode to 'flexible' (v1.0.5-era default) —");
+const manifestPath = path.join(project, ".opsx/manifest.json");
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+manifest.config.workMode = "flexible";
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+
 // user has a stale workflow.yaml (still v1.0.5 content)
 // Update should refresh it because it was not modified by the user post-init.
 
@@ -155,6 +165,10 @@ assert(/DO NOT CLOBBER/.test(finalShip), "KEPT: user-modified ship.md preserved 
 // H. Update output reports what happened
 assert(/Added:/.test(updateOut), "update output: shows Added section");
 assert(/Updated:/.test(updateOut), "update output: shows Updated section");
+
+// I. Tip is printed for projects not yet on worktree mode
+assert(/Tip.*work_mode:\s*flexible/i.test(updateOut), "update output: suggests switching to worktree mode for legacy projects");
+assert(/Tip.*worktree/i.test(updateOut), "update output: tip mentions worktree");
 
 // I. --force should overwrite the user-modified file
 console.log("\n— re-running opsx update --force —");
