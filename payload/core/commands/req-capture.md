@@ -1,10 +1,24 @@
 ---
-description: Guided requirements elicitation — produces a discovery doc in backlog/discovery/
+description: Guided requirements elicitation — produces a discovery doc in backlog/discovery/ on the integration branch
 ---
 
 Capture requirements for the topic `$ARGUMENTS` through a structured interview, and write the result to `backlog/discovery/<topic>.md` using `templates/discovery.md`.
 
+> **Branch guard (mandatory).** This command MUST run on the integration branch (`develop`, configured as `git.integration_branch` in `workflow.yaml`). It MUST NOT run inside a git worktree. Discovery docs are management-plane planning artifacts and live alongside OpenSpec changes on `develop` — never in a worktree.
+
 **Steps**
+
+0. **Branch guard**
+
+   ```bash
+   git branch --show-current
+   git worktree list
+   pwd
+   ```
+
+   - Read `git.integration_branch` from `workflow.yaml`.
+   - If the current branch is not the integration branch, refuse and tell the user to `git checkout <integration_branch>` first.
+   - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout.
 
 1. If no topic was given, ask what problem or initiative we are exploring. Derive a kebab-case topic name.
 
@@ -21,4 +35,13 @@ Capture requirements for the topic `$ARGUMENTS` through a structured interview, 
 
 4. Write `backlog/discovery/<topic>.md` from `templates/discovery.md`. Unanswered items go to **Open questions** — never invent answers.
 
-5. Suggest the next step: `/task-generate <topic>`.
+5. **Commit on `develop` (commit discipline)**
+
+   ```bash
+   git add backlog/discovery/<topic>.md
+   git commit -m "docs(discovery): add <topic>"
+   ```
+
+   Skip only if the user explicitly asks to defer.
+
+6. Suggest the next step: `/task-generate <topic>`.

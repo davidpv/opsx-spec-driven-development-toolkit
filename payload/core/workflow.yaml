@@ -10,12 +10,24 @@ git:
   # (e.g. feature/PROJ-123-speed-up-search); otherwise <prefix><change-name>.
   # Commands parse both forms when inferring the change from the branch name.
   # Working mode for implementation:
-  #   feature  → always require feature/<change> branches + PR (strict)
+  #   worktree → /opsx:apply creates a git worktree per change at .worktrees/
+  #              on a fresh feature/<change> branch off integration_branch.
+  #              Apply + verify run inside the worktree; /ship merges back.
+  #              Default for new projects (matches the OpenSpec + git-worktree
+  #              flow from https://intent-driven.dev/blog/2026/04/01/openspec-git-worktrees-opencode/).
+  #   feature  → always require feature/<change> branches + PR (strict), but
+  #              without the worktree isolation. Use when worktrees can't run.
   #   flexible → feature branches recommended, but committing directly on the
-  #              integration branch is allowed; /ship then skips PR/merge
-  work_mode: flexible
+  #              integration branch is allowed; /ship then skips PR/merge.
+  work_mode: worktree
   commit_convention: conventional  # https://www.conventionalcommits.org
   commit_scope_from: change    # scope = openspec change name unless overridden
+
+  # Worktree settings (only used when work_mode == worktree).
+  worktree:
+    dir: .worktrees            # per-change worktrees live here, gitignored
+    base_branch: develop       # branched off the integration branch (overrides integration_branch if both set)
+    auto_remove: true          # /ship removes the worktree after merge; set to false to keep it
 
 platform:
   provider: auto               # auto | github | gitlab | none
@@ -39,3 +51,9 @@ backlog:
   # Task IDs ARE Jira keys: <jira.project_key>-<n>, provided by the user.
   # If the Jira issue doesn't exist yet, use <project_key>-D<nn> (draft) and
   # rename the file/frontmatter when the real key is known.
+
+worktrees:
+  # Shared with git.worktree.*; kept here for backwards compatibility with
+  # older opsx projects that read this block.
+  base_branch: develop
+  dir: .worktrees

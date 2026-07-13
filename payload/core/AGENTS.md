@@ -8,44 +8,88 @@ This repository follows **spec-driven development**: no code is written until th
 
 If a request arrives as "build X" and there is no OpenSpec change for it, your first move is `/opsx:propose` — not writing code.
 
+## The four wrapper commands
+
+The pipeline is exposed to users through four top-level wrappers. Everything else (`/opsx:*`) is an internal primitive invoked by the wrappers — callable by power users, but not part of the daily path.
+
+- **`/start`** — entry: route new work (existing Jira ticket / direct change / new task) and chain into propose + worktree.
+- **`/next`** — recovery point: inspect state and suggest the next step. Always suggest, never auto-advance.
+- **`/work [changes...]`** — bulk multi-agent build: fan out active changes to SubAgents, each in its own git worktree. SubAgents apply + verify and report back; they do not merge.
+- **`/ship <change>`** — closing button: verify gate + merge into the integration branch + archive on develop + cleanup worktree + close the linked task. One command = done.
+
 ## Workflow
 
 The full pipeline runs from requirements to merge. Stages 0–1 are optional for trivial changes; stages 2–6 are mandatory.
 
 0. **Discover** — `/req-capture <topic>` interviews the user and writes `backlog/discovery/<topic>.md`. No invented answers: unknowns go to Open questions.
 1. **Tasks** — `/task-generate <topic>` slices the discovery into tasks under `backlog/tasks/`. Alternative entries: `/task-import <key>` normalizes an existing Jira ticket (pasted by the user) into the backlog; `/task-new <title>` creates a single task without a discovery doc. Task IDs ARE Jira keys (`<project_key>-<n>`, provided by the user; `-Dnn` drafts until the issue exists). `/task-enrich <id>` adds edge cases, estimates, and unhappy paths; `/review-task <id>` audits; `/task-jira <id>` exports Jira wiki markup to `backlog/exports/jira/` (not needed for imported tickets).
-2. **Propose** — `/opsx:propose <change-name>` creates `openspec/changes/<name>/` with proposal, delta specs, design, and tasks. If the change implements a backlog task, the proposal references its ID and the task frontmatter gets `change: <name>`.
-3. **Specify & plan** — Delta specs (requirements + GIVEN/WHEN/THEN) as ADDED/MODIFIED/REMOVED; `design.md` for the approach; `tasks.md` for checkable steps.
+2. **Propose on develop** — `/opsx:propose <change-name>` runs on the integration branch (`develop`) and creates `openspec/changes/<name>/` with proposal, delta specs, design, and tasks. **Propose must run on `develop`, never inside a worktree or feature branch** — OpenSpec needs to see all active changes and the authoritative specs to detect conflicts. If the change implements a backlog task, the proposal references its ID and the task frontmatter gets `change: <name>`. End the run with a commit on `develop`.
+3. **Specify & plan** — Delta specs (requirements + GIVEN/WHEN/THEN) as ADDED/MODIFIED/REMOVED; `design.md` for the approach; `tasks.md` for checkable steps. Each artifact is committed individually on `develop` for clean recovery points.
 4. **Review** — `/review-change <name>` audits the change before implementation.
-5. **Implement** — `/opsx:apply`. **Branch gate (mandatory, BEFORE writing any code):** check the current branch first. Never implement on `main`. With `work_mode: feature`, create and switch to the feature branch (naming rule below) before touching any file. With `work_mode: flexible`, ask the user where to implement — feature branch (recommended) or directly on the integration branch — and create/switch accordingly before the first edit. Then commit with `/git-commit`: conventional commits whose footer traces `Change:`/`Task:` (tasks.md step)/`Jira:` (backlog task id).
-6. **Deliver** — feature branch: `/pr-open` creates the PR against the integration branch, `/ship` validates, archives, merges and closes the backlog task. Integration branch: skip `/pr-open`; `/ship` validates, archives and pushes (no PR, no review).
+5. **Implement in a worktree** — `/opsx:apply <name>`. When `git.work_mode == worktree` (default for new projects), the command creates a git worktree at `.worktrees/<change>/` on a new branch `feature/<change>` (or `feature/<task-id>-<change>` if the change is linked to a real Jira key) and runs tasks inside it. With `work_mode: feature`, it falls back to a plain feature branch. With `work_mode: flexible`, it asks the user where to implement. Commits happen at every task boundary; `/git-commit` is suggested (not auto-run) so the user approves messages.
+6. **Verify in the worktree** — `/opsx:verify <name>` runs inside `.worktrees/<change>/`. Confirms completeness (tasks done, requirements present), correctness (requirements implemented, scenarios covered), and coherence (design followed, patterns consistent). Refuses if not run inside the worktree.
+7. **Merge, then archive, then close** — `/ship <name>` is the one-button close. Steps in order: verify gate → merge the worktree branch into `develop` (squash by default, gh/glab/web-UI fallback as today) → run `/opsx:archive` on `develop` so delta specs sync into `openspec/specs/` with the full view of every other merged change → clean up the worktree and local branch → close the linked task.
+
+For multiple independent changes, run `/work` instead of `/opsx:apply`: it spawns one SubAgent per non-conflicting change, each in its own worktree. SubAgents apply + verify and report back. The user inspects each report, then runs `/ship` per change in sequence so each merge + archive has the right view of `develop`.
 
 Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → Commit → PR**. Note: "task" means a backlog/Jira task; tasks.md inside a change holds implementation steps.
+
+## Branch discipline (mandatory)
+
+| Step | Required branch | Why |
+|---|---|---|
+| `/opsx:propose` | `develop` (integration) | Must see all in-flight changes + `openspec/specs/` |
+| `/opsx:apply` | inside `.worktrees/<change>/` (default) | Isolated implementation |
+| `/opsx:verify` | inside `.worktrees/<change>/` | Verify against the actual code that will be merged |
+| `/ship` (merge step) | `develop`, after verify | Code lands first, then specs sync |
+| `/opsx:archive` | `develop`, after merge | Spec-sync needs the full view of every other merged change |
+| `/opsx:sync` | `develop` | Same reasoning as archive |
+| `/req-capture` | `develop` | Discovery doc is a planning artifact, lives with OpenSpec changes |
+| `/task-import` | `develop` | Tasks are planning artifacts, live with their discovery doc |
+| `/task-new` | `develop` | Same |
+| `/task-generate` | `develop` | Same |
+| `/task-enrich` | `develop` | Edits happen where the task was created |
+| `/task-jira` | `develop` | Jira exports derive from the tasks on `develop` |
+
+Each step refuses to run on the wrong branch and prints the required one. **Never commit directly to `main`** (release branch). The management-plane branch discipline has the same shape as the governance-plane one: **planning lives on `develop`, code lives in worktrees**.
+
+## Commit discipline
+
+Commit at every logical boundary:
+
+- After `/opsx:propose` creates the change directory, and after each artifact is generated individually (proposal, specs, design, tasks).
+- After each completed task inside the worktree.
+- After `/opsx:verify` (the verification report is itself a state change worth committing).
+- After `/opsx:archive` (spec-sync is a meaningful state change on `develop`).
+- After `/req-capture` writes the discovery doc.
+- After each new/edit produced by `/task-import`, `/task-new`, `/task-generate`, `/task-enrich`.
+- After `/task-jira` (optional — exports are paste-targets; commit if you want them in history).
+
+A dense commit history is the recovery point when a SubAgent session goes wrong mid-apply — there is always a clean place to resume from rather than starting over.
 
 ## Guided flow
 
 The pipeline is guided: the user should never have to remember what comes next.
 
-- **`/start` is the entry point** — when work begins, it asks which situation applies and routes accordingly: an existing Jira ticket (`/task-import <key>`, user pastes the ticket), no ticket and propose directly (`/opsx:explore` → `/opsx:propose`), or no ticket and the task must exist first (`/req-capture` for initiatives, `/task-new` for a single task).
-- **Every pipeline command ends by suggesting the next step** — one concrete command with a one-line reason (e.g. after `/task-enrich`: "next: `/task-jira PROJ-123` to export, or `/opsx:propose` to start building").
-- **After implementation work** — whenever `/opsx:apply` finishes a step (or any ad-hoc code edit completes), suggest `/git-commit`. When the last step of `tasks.md` is checked, suggest `/pr-open` (feature branch) or `/ship` (integration branch). After `/ship`, list pending backlog tasks and suggest the highest-priority one.
-- **`/next` is the recovery point** — when the user seems lost, returns after a break, or asks "what now?", run the `/next` logic: inspect git state, task frontmatter, and change artifacts, then report where they are and the single best next action.
+- **`/start` is the entry point** — when work begins, it asks which situation applies and routes accordingly: an existing Jira ticket (`/task-import <key>`, user pastes the ticket), no ticket and propose directly (`/opsx:explore` → `/opsx:propose`), or no ticket and the task must exist first (`/req-capture` for initiatives, `/task-new` for a single task). After `/task-import` or `/task-new`, `/start` auto-chains into `/opsx:propose` so the user ends with either a worktree ready to implement or a proposal ready for review.
+- **`/next` is the recovery point** — when the user seems lost, returns after a break, or asks "what now?", run the `/next` logic: inspect git state, worktree state, task frontmatter, change artifacts, and PR state, then report where they are and the single best next action. `/next` only suggests; the user runs the suggested command.
+- **After implementation work** — whenever `/opsx:apply` finishes a step, suggest `/git-commit`. When the last step of `tasks.md` is checked, suggest `/opsx:verify`. When verify passes, suggest `/ship`.
+- **After `/ship`** — list pending backlog tasks and suggest the highest-priority one.
 - Suggestions are advice, not actions: never run the suggested command without the user asking.
 
 ## Rules for agents
 
 - `openspec/specs/` is the source of truth for current system behavior. Read it before proposing changes; never edit it directly — it only changes via `/opsx:archive`.
 - Requirements use RFC-2119 keywords (MUST/SHALL/SHOULD/MAY). Each requirement has at least one scenario.
-- If during implementation you discover the spec was wrong or incomplete, stop, update the spec, then continue. Do not silently diverge.
-- Keep changes small: one concern per change, one change per branch.
-- Validate before archiving: `openspec validate <change> --strict`.
-- `workflow.yaml` at the repo root defines branches, commit convention, and Jira/export settings. Pipeline commands read it; never hardcode branch names or platforms.
+- If during implementation you discover the spec was wrong or incomplete, stop, update the spec, then continue. Do not silently diverge. On `develop`, use `/opsx:sync` to apply the delta; inside the worktree, edit the delta spec and re-sync after merge.
+- Keep changes small: one concern per change, one change per worktree branch.
+- Validate before archiving: `openspec validate <change> --strict`. `/ship` runs this as part of its verify gate.
+- `workflow.yaml` at the repo root defines branches, commit convention, Jira/export settings, and worktree settings. Pipeline commands read it; never hardcode branch names or platforms.
 - Task frontmatter (`status`, `change`, `id`) is the pipeline state of a backlog task. Commands keep it updated; don't bypass it.
-- Never commit directly to `main` (release branch only). Working on the integration branch is allowed when `git.work_mode: flexible` in `workflow.yaml`; feature branches + PR are still the recommended path when code review matters. With `work_mode: feature`, a feature branch is mandatory.
+- Never commit directly to `main` (release branch only). Working on `develop` is allowed when `git.work_mode: flexible`; worktrees (`work_mode: worktree`, default) are the recommended path. With `work_mode: feature`, a plain feature branch is mandatory.
 - Feature branch naming: `feature/<task id>-<change>` when the change is linked to a backlog task with a real Jira key (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise. When inferring the change from a branch name, strip the leading Jira key.
-- Always create a feature branch before starting to create the propose, design and tasks artifacts. The branch name is used in the proposal and tasks.md to trace the change.
-- **Branch gate**: no implementation work starts until the working branch is resolved (created and checked out). This applies to `/opsx:apply` and to any ad-hoc code edit. `/git-commit` re-checks at commit time as a safety net, but the gate must run first — don't rely on the net.
-- All artifacts are written in the language the user configures in `workflow.yaml` (`content.default_language`). 
+- **Branch gate**: no implementation work starts until the working branch is resolved (worktree created, or feature branch checked out). This applies to `/opsx:apply` and to any ad-hoc code edit. `/git-commit` re-checks at commit time as a safety net.
+- All artifacts are written in the language the user configures in `workflow.yaml` (`content.default_language`).
 
 ## Repository layout
 
@@ -56,7 +100,8 @@ The pipeline is guided: the user should never have to remember what comes next.
 | `openspec/changes/` | In-flight changes (proposal, specs, design, tasks) |
 | `openspec/changes/archive/` | Completed changes, audit history |
 | `templates/` | Discovery, task, and PR description templates |
-| `workflow.yaml` | Tool-agnostic pipeline config (branches, commits, Jira) |
+| `workflow.yaml` | Tool-agnostic pipeline config (branches, commits, Jira, worktrees) |
+| `.worktrees/` | Per-change git worktrees (created by `/opsx:apply`, removed by `/ship`) |
 | `.opencode/` | opencode agents, commands, and OpenSpec skills |
 
 ## Stack

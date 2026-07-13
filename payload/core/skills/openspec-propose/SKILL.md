@@ -5,24 +5,38 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: openspec
-  version: "1.0"
-  generatedBy: "1.4.1"
+  version: "1.1"
+  generatedBy: "opsx"
 ---
 
 Propose a new change - create the change and generate all artifacts in one step.
+
+> **Branch guard (mandatory).** This skill MUST run on the integration branch (`develop`, configured as `git.integration_branch` in `workflow.yaml`). It MUST NOT run on a feature branch or inside a git worktree. OpenSpec's conflict detection needs the full view of every other in-flight change and the authoritative `openspec/specs/`; running from a worktree branch would blind it to that context and silently allow conflicting specs.
 
 I'll create a change with artifacts:
 - proposal.md (what & why)
 - design.md (how)
 - tasks.md (implementation steps)
+- delta specs (ADDED / MODIFIED / REMOVED requirements)
 
-When ready to implement, run /opsx-apply
+When ready to implement, run `/opsx:apply` (single change) or `/work` (parallel changes via SubAgents).
 
 ---
 
 **Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
 
 **Steps**
+
+0. **Branch guard**
+
+   ```bash
+   git branch --show-current
+   git worktree list
+   ```
+
+   - Read `git.integration_branch` from `workflow.yaml`.
+   - If the current branch is not the integration branch, refuse and tell the user to `git checkout <integration_branch>` first.
+   - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout.
 
 1. **If no clear input provided, ask what they want to build**
 
@@ -79,19 +93,40 @@ When ready to implement, run /opsx-apply
    c. **If an artifact requires user input** (unclear context):
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
+5. **Commit each artifact individually (commit discipline)**
 
-5. **Show final status**
+   This is a recovery point. After each artifact is written, stage and commit it on the integration branch:
+
+   ```bash
+   git add <artifact file>
+   git commit -m "<type>(<change>): add <artifact>"
+   ```
+
+   Conventional `<type>` per artifact kind:
+   - `proposal.md` → `docs(<change>): add proposal`
+   - `design.md`   → `docs(<change>): add design`
+   - `tasks.md`    → `docs(<change>): add tasks`
+   - `specs/*`     → `docs(<change>): add delta spec for <capability>`
+
+   Skip if the user asks to batch.
+
+6. **Show final status**
+
    ```bash
    openspec status --change "<name>"
+   git status --short
    ```
+
+   If `git status --short` shows anything uncommitted, commit it on the integration branch now before returning.
 
 **Output**
 
 After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
-- What's ready: "All artifacts created! Ready for implementation."
-- Prompt: "Run `/opsx-apply` or ask me to implement to start working on the tasks."
+- Confirmation that each artifact was committed individually on the integration branch
+- What's ready: "All artifacts created and committed on <integration_branch>. Ready for implementation."
+- Prompt: "Run `/opsx:apply` to create a worktree and implement, or `/work` to fan out across SubAgents."
 
 **Artifact Creation Guidelines**
 
@@ -104,8 +139,10 @@ After completing all artifacts, summarize:
   - These guide what you write, but should never appear in the output
 
 **Guardrails**
+- **Always run the branch guard first.** Refuse and exit if the working branch or working dir is wrong.
 - Create ALL artifacts needed for implementation (as defined by schema's `apply.requires`)
 - Always read dependency artifacts before creating a new one
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
+- Verify each artifact is committed on the integration branch before returning
