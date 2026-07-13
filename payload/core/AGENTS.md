@@ -24,7 +24,7 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
 0. **Discover** — `/req-capture <topic>` interviews the user and writes `backlog/discovery/<topic>.md`. No invented answers: unknowns go to Open questions.
 1. **Tasks** — `/task-generate <topic>` slices the discovery into tasks under `backlog/tasks/`. Alternative entries: `/task-import <key>` normalizes an existing Jira ticket (pasted by the user) into the backlog; `/task-new <title>` creates a single task without a discovery doc. Task IDs ARE Jira keys (`<project_key>-<n>`, provided by the user; `-Dnn` drafts until the issue exists). `/task-enrich <id>` adds edge cases, estimates, and unhappy paths; `/review-task <id>` audits; `/task-jira <id>` exports Jira wiki markup to `backlog/exports/jira/` (not needed for imported tickets).
 2. **Propose on develop** — `/opsx:propose <change-name>` runs on the integration branch (`develop`) and creates `openspec/changes/<name>/` with proposal, delta specs, design, and tasks. **Propose must run on `develop`, never inside a worktree or feature branch** — OpenSpec needs to see all active changes and the authoritative specs to detect conflicts. If the change implements a backlog task, the proposal references its ID and the task frontmatter gets `change: <name>`. End the run with a commit on `develop`.
-3. **Specify & plan** — Delta specs (requirements + GIVEN/WHEN/THEN) as ADDED/MODIFIED/REMOVED; `design.md` for the approach; `tasks.md` for checkable steps. Each artifact is committed individually on `develop` for clean recovery points.
+3. **Specify & plan** — Delta specs (requirements + GIVEN/WHEN/THEN) as ADDED/MODIFIED/REMOVED; `design.md` for the approach; `tasks.md` for checkable steps. All artifacts are committed together in one commit on `develop` for a clean recovery point.
 4. **Review** — `/review-change <name>` audits the change before implementation.
 5. **Implement in a worktree** — `/opsx:apply <name>`. When `git.work_mode == worktree` (default for new projects), the command creates a git worktree at `.worktrees/<change>/` on a new branch `feature/<change>` (or `feature/<task-id>-<change>` if the change is linked to a real Jira key) and runs tasks inside it. With `work_mode: feature`, it falls back to a plain feature branch. With `work_mode: flexible`, it asks the user where to implement. Commits happen at every task boundary; `/git-commit` is suggested (not auto-run) so the user approves messages.
 6. **Verify in the worktree** — `/opsx:verify <name>` runs inside `.worktrees/<change>/`. Confirms completeness (tasks done, requirements present), correctness (requirements implemented, scenarios covered), and coherence (design followed, patterns consistent). Refuses if not run inside the worktree.
@@ -57,7 +57,7 @@ Each step refuses to run on the wrong branch and prints the required one. **Neve
 
 Commit at every logical boundary:
 
-- After `/opsx:propose` creates the change directory, and after each artifact is generated individually (proposal, specs, design, tasks).
+- After `/opsx:propose` creates the change directory, all generated artifacts (proposal, specs, design, tasks) are committed together in one commit.
 - After each completed task inside the worktree.
 - After `/opsx:verify` (the verification report is itself a state change worth committing).
 - After `/opsx:archive` (spec-sync is a meaningful state change on `develop`).

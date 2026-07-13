@@ -274,7 +274,7 @@ Each change lives in `openspec/changes/<name>/` until archived. Archiving merges
 | Command | Stage | What it does |
 |---------|-------|--------------|
 | `/opsx:explore` | Spec | Investigate the codebase/specs before proposing |
-| `/opsx:propose <name>` | Spec | Create a change: proposal, delta specs, design, tasks. **Runs on `develop`, never inside a worktree.** Commits each artifact individually. |
+| `/opsx:propose <name>` | Spec | Create a change: proposal, delta specs, design, tasks. **Runs on `develop`, never inside a worktree.** Commits all artifacts together in one commit. |
 | `/review-change <name>` | Spec | Spec-reviewer audit + `openspec validate --strict` |
 | `/opsx:apply <name>` | Build | Create the worktree (`feature/<change>`) and implement tasks inside it. With `git.work_mode: feature`, falls back to a plain feature branch. |
 | `/git-commit` | Build | Conventional commit traced to change/step/Jira task |
