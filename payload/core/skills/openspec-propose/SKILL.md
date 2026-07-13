@@ -19,7 +19,7 @@ I'll create a change with artifacts:
 - tasks.md (implementation steps)
 - delta specs (ADDED / MODIFIED / REMOVED requirements)
 
-When ready to implement, run `/opsx:apply` (single change) or `/work` (parallel changes via SubAgents).
+When ready to implement, run `/work` — it builds the change in a worktree (apply + verify), fanning out across SubAgents when there are several changes.
 
 ---
 
@@ -122,7 +122,7 @@ After completing all artifacts, summarize:
 - List of artifacts created with brief descriptions
 - Confirmation that all artifacts were committed together in one commit on the integration branch
 - What's ready: "All artifacts created and committed on <integration_branch>. Ready for implementation."
-- Prompt: "Run `/opsx:apply` to create a worktree and implement, or `/work` to fan out across SubAgents."
+- Prompt: "Run `/work` to build this change (it creates the worktree, applies, and verifies)."
 
 **Artifact Creation Guidelines**
 

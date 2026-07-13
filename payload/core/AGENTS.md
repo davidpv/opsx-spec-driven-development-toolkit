@@ -12,10 +12,12 @@ If a request arrives as "build X" and there is no OpenSpec change for it, your f
 
 The pipeline is exposed to users through four top-level wrappers. Everything else (`/opsx:*`) is an internal primitive invoked by the wrappers — callable by power users, but not part of the daily path.
 
-- **`/start`** — entry: route new work (existing Jira ticket / direct change / new task) and chain into propose + worktree.
-- **`/next`** — recovery point: inspect state and suggest the next step. Always suggest, never auto-advance.
-- **`/work [changes...]`** — bulk multi-agent build: fan out active changes to SubAgents, each in its own git worktree. SubAgents apply + verify and report back; they do not merge.
+- **`/start`** — entry: route new work (existing Jira ticket / direct change / new task) and chain up to a reviewed proposal on `develop`, ready for `/work`.
+- **`/next`** — recovery point: inspect state and suggest the next step (always a wrapper). Always suggest, never auto-advance.
+- **`/work [changes...]`** — build: implement a change in its own git worktree (apply + verify). One change or several — with multiple changes it fans out to SubAgents in parallel. SubAgents do not merge.
 - **`/ship <change>`** — closing button: verify gate + merge into the integration branch + archive on develop + cleanup worktree + close the linked task. One command = done.
+
+The daily path is **`/start → /work → /ship`**, with `/next` as the "what now?" helper. Everything under `/opsx:*` (plus `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) is an internal primitive the wrappers call — never suggest them to the user as the next step.
 
 ## Workflow
 
@@ -69,12 +71,13 @@ A dense commit history is the recovery point when a SubAgent session goes wrong 
 
 ## Guided flow
 
-The pipeline is guided: the user should never have to remember what comes next.
+The pipeline is guided: the user should never have to remember what comes next. **Only ever suggest a wrapper command as the next step — `/start`, `/work`, or `/ship` (with `/next` as the recovery helper). Never surface a low-level primitive (`/opsx:*`, `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) as the next step; the wrappers invoke those internally. The daily path is `/start → /work → /ship`.**
 
-- **`/start` is the entry point** — when work begins, it asks which situation applies and routes accordingly: an existing Jira ticket (`/task-import <key>`, user pastes the ticket), no ticket and propose directly (`/opsx:explore` → `/opsx:propose`), or no ticket and the task must exist first (`/req-capture` for initiatives, `/task-new` for a single task). After `/task-import` or `/task-new`, `/start` auto-chains into `/opsx:propose` so the user ends with either a worktree ready to implement or a proposal ready for review.
-- **`/next` is the recovery point** — when the user seems lost, returns after a break, or asks "what now?", run the `/next` logic: inspect git state, worktree state, task frontmatter, change artifacts, and PR state, then report where they are and the single best next action. `/next` only suggests; the user runs the suggested command.
-- **After implementation work** — whenever `/opsx:apply` finishes a step, suggest `/git-commit`. When the last step of `tasks.md` is checked, suggest `/opsx:verify`. When verify passes, suggest `/ship`.
-- **After `/ship`** — list pending backlog tasks and suggest the highest-priority one.
+- **`/start` is the entry point** — when work begins, it asks which situation applies and routes accordingly: an existing Jira ticket (user pastes it), no ticket and propose directly, or no ticket and the task must exist first. Internally it may chain `/task-import`, `/req-capture`, `/task-new`, `/task-generate`, `/opsx:explore`, `/opsx:propose`, and the review — but it ends at a reviewed proposal on `develop` and hands the user `/work` as the next step. `/start` does not build.
+- **`/next` is the recovery point** — when the user seems lost, returns after a break, or asks "what now?", run the `/next` logic: inspect git state, worktree state, task frontmatter, change artifacts, and PR state, then report where they are and the single best next action — always a wrapper. `/next` only suggests; the user runs the suggested command.
+- **After a proposal is ready** — the next step is always `/work` (it creates the worktree, applies, and verifies). Never suggest `/opsx:apply` or `/opsx:verify` directly.
+- **After a build is complete and verified** — the next step is always `/ship`.
+- **After `/ship`** — list pending backlog tasks and suggest `/start` on the highest-priority one.
 - Suggestions are advice, not actions: never run the suggested command without the user asking.
 
 ## Rules for agents

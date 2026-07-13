@@ -41,7 +41,7 @@ The order is **merge → archive, every time**: code lands first via the merge, 
    git rev-parse --verify "<feature-branch>"
    ```
 
-   **If the worktree or branch is missing**, tell the user the change has not been implemented yet (suggest `/opsx:apply <change>`) and stop.
+   **If the worktree or branch is missing**, tell the user the change has not been built yet (suggest `/work <change>`) and stop.
 
 4. **Verify gate (CRITICAL)**
 
@@ -54,8 +54,8 @@ The order is **merge → archive, every time**: code lands first via the merge, 
      - The final assessment contains no `CRITICAL` issues.
 
    **If any check fails**, refuse and print the exact issue:
-   - No record → "Run `/opsx:verify <change>` inside the worktree first."
-   - Stale record → "The worktree has new commits since the last verify. Re-run `/opsx:verify <change>`."
+   - No record → "This change hasn't been verified yet. Run `/work <change>` to finish the build (it applies and verifies)."
+   - Stale record → "The worktree has new commits since the last verify. Run `/work <change>` to re-apply and re-verify."
    - CRITICAL issues → list them; refuse to merge.
 
    With `git.work_mode != worktree`, fall back to running `openspec validate <change> --strict` (the lint check) and confirming all tasks in `tasks.md` are checked.
