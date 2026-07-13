@@ -17,7 +17,7 @@ export interface InitConfig {
   language: "es" | "en";
   mainBranch: string;
   integrationBranch: string;
-  workMode: "feature" | "flexible";
+  workMode: "feature" | "flexible" | "worktree";
 }
 
 export interface PayloadFile {

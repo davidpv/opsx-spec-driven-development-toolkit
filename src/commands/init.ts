@@ -105,7 +105,8 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
       language: opts.language === "en" ? "en" : "es",
       mainBranch: opts.mainBranch ?? "main",
       integrationBranch: opts.integrationBranch ?? "develop",
-      workMode: opts.workMode === "feature" ? "feature" : "flexible",
+      workMode:
+        opts.workMode === "feature" || opts.workMode === "worktree" ? opts.workMode : "worktree",
     };
   }
 
@@ -150,9 +151,11 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     (await p.select({
       message: "Working mode",
       options: [
+        { value: "worktree", label: "worktree (default)", hint: "one git worktree per change; /opsx:apply creates it" },
+        { value: "feature", label: "feature", hint: "always require feature branch + PR (no worktree)" },
         { value: "flexible", label: "flexible", hint: "feature branches recommended, direct commits allowed" },
-        { value: "feature", label: "feature", hint: "always require feature branch + PR" },
       ],
+      initialValue: "worktree",
     }));
   if (p.isCancel(workMode)) return cancel();
 
@@ -162,7 +165,8 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     language: language === "en" ? "en" : "es",
     mainBranch: String(mainBranch),
     integrationBranch: String(integrationBranch),
-    workMode: workMode === "feature" ? "feature" : "flexible",
+    workMode:
+      workMode === "feature" || workMode === "worktree" ? workMode : "worktree",
   };
 }
 

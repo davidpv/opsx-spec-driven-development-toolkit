@@ -30,7 +30,8 @@ program
 program
   .command("update")
   .description("Refresh managed files after upgrading opsx (locally modified files are kept)")
-  .option("-f, --force", "overwrite locally modified files too")
+  .option("-f, --force", "overwrite locally modified files and auto-apply managed-block changes")
+  .option("--non-interactive", "do not prompt for managed-block changes; apply automatically and print a diff summary")
   .action((opts) => updateCommand(opts, pkg.version));
 
 program
