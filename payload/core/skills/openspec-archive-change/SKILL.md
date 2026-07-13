@@ -5,15 +5,30 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: openspec
-  version: "1.0"
-  generatedBy: "1.4.1"
+  version: "1.1"
+  generatedBy: "opsx"
 ---
 
 Archive a completed change in the experimental workflow.
 
+> **Branch guard (mandatory).** Archive MUST run on the integration branch (`develop`, configured as `git.integration_branch` in `workflow.yaml`). It MUST NOT run on a feature branch or inside a git worktree. Spec-sync needs the full view of every other merged change on `develop`; running from a worktree branch would blind it to that context and produce spec drift.
+>
+> **Order discipline.** Archive runs AFTER the worktree branch has merged into the integration branch (i.e., after `/ship` step 5). The flow is **merge → archive**, in that order, every time. This skill is what `/ship` calls between merge and cleanup.
+
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
+
+0. **Branch guard**
+
+   ```bash
+   git branch --show-current
+   git worktree list
+   ```
+
+   - Read `git.integration_branch` from `workflow.yaml`.
+   - If the current branch is not the integration branch, refuse and tell the user to `git checkout <integration_branch>` first.
+   - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout.
 
 1. **If no change name provided, prompt for selection**
 
@@ -85,13 +100,24 @@ Archive a completed change in the experimental workflow.
    mv "<changeRoot>" "<planningHome.changesDir>/archive/YYYY-MM-DD-<name>"
    ```
 
-6. **Display summary**
+6. **Commit the archive result on the integration branch**
+
+   The spec-sync is a meaningful state change. Commit it so the next proposal sees the updated `openspec/specs/`:
+
+   ```bash
+   git add openspec/specs/
+   git commit -m "chore(<change>): archive openspec change"
+   ```
+
+   Skip if the user has already committed or asks to defer.
+
+7. **Display summary**
 
    Show archive completion summary including:
    - Change name
    - Schema that was used
    - Archive location
-   - Whether specs were synced (if applicable)
+   - Whether specs were synced and committed (if applicable)
    - Note about any warnings (incomplete artifacts/tasks)
 
 **Output On Success**
@@ -102,12 +128,13 @@ Archive a completed change in the experimental workflow.
 **Change:** <change-name>
 **Schema:** <schema-name>
 **Archived to:** the archive path derived from `planningHome.changesDir`/YYYY-MM-DD-<name>/
-**Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**Specs:** ✓ Synced to main specs and committed on <integration_branch>
 
 All artifacts complete. All tasks complete.
 ```
 
 **Guardrails**
+- **Always run the branch guard first.** Refuse and exit if the working branch or working dir is wrong.
 - Always prompt for change selection if not provided
 - Use artifact graph (openspec status --json) for completion checking
 - Don't block archive on warnings - just inform and confirm
@@ -115,3 +142,4 @@ All artifacts complete. All tasks complete.
 - Show clear summary of what happened
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- The final spec-sync commit lands on the integration branch, not on a worktree branch
