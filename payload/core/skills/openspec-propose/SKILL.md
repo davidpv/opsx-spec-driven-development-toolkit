@@ -93,18 +93,15 @@ When ready to implement, run `/work` — it builds the change in a worktree (app
    c. **If an artifact requires user input** (unclear context):
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
-5. **Commit all artifacts together in one commit (commit discipline)**
+5. **Stage changes and suggest `/git-commit` (no auto-commit)**
 
-   Once every artifact is written, stage them all and create a single commit on the integration branch grouping proposal, design, tasks and delta specs:
+   > **Never run `git commit` automatically.** All commits in this project are user-driven. After writing the artifacts, stage them so the user can see them in `git status`, then suggest `/git-commit` and stop.
 
    ```bash
    git add <change dir>
-   git commit -m "docs(<change>): add change artifacts"
    ```
 
-   The commit groups all artifacts (proposal, design, tasks, delta specs) into one recovery point.
-
-   Skip if the user asks to split them.
+   The commit groups all artifacts (proposal, design, tasks, delta specs) into one recovery point. The user runs `/git-commit` to review the message and finalize it.
 
 6. **Show final status**
 
@@ -113,16 +110,16 @@ When ready to implement, run `/work` — it builds the change in a worktree (app
    git status --short
    ```
 
-   If `git status --short` shows anything uncommitted, commit it on the integration branch now before returning.
+   If `git status --short` still shows unstaged files, mention them; **do not commit on the user's behalf** — just suggest `/git-commit` again so the user can stage and finalize.
 
 **Output**
 
 After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
-- Confirmation that all artifacts were committed together in one commit on the integration branch
-- What's ready: "All artifacts created and committed on <integration_branch>. Ready for implementation."
-- Prompt: "Run `/work` to build this change (it creates the worktree, applies, and verifies)."
+- Note that the artifacts are **staged and ready** for commit by the user (the LLM does not commit)
+- What's ready: "All artifacts created and staged on <integration_branch>. Run `/git-commit` to review and commit."
+- Suggested next step: "Run `/git-commit` to create the recovery-point commit, then `/work` to build this change."
 
 **Artifact Creation Guidelines**
 
@@ -141,4 +138,4 @@ After completing all artifacts, summarize:
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
-- Verify all artifacts are committed together in one commit on the integration branch before returning
+- **Never run `git commit`** — stage the artifacts and suggest `/git-commit` for the user to finalize

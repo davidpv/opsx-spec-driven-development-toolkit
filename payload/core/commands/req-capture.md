@@ -35,13 +35,14 @@ Capture requirements for the topic `$ARGUMENTS` through a structured interview, 
 
 4. Write `backlog/discovery/<topic>.md` from `templates/discovery.md`. Unanswered items go to **Open questions** — never invent answers.
 
-5. **Commit on `develop` (commit discipline)**
+5. **Stage and suggest `/git-commit` (no auto-commit)**
+
+   > **Never run `git commit` automatically.** All commits are user-driven. Stage the discovery doc on `develop` and suggest `/git-commit` for the user to finalize.
 
    ```bash
    git add backlog/discovery/<topic>.md
-   git commit -m "docs(discovery): add <topic>"
    ```
 
-   Skip only if the user explicitly asks to defer.
+   The user runs `/git-commit` to review the message and create the commit.
 
 6. Suggest the next step: `/task-generate <topic>`.

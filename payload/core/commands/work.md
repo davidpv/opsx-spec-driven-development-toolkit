@@ -91,11 +91,12 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    7. For each unchecked task in `tasks.md`:
       - Make the code change inside this worktree only. Never touch the main checkout.
       - Mark `- [ ]` → `- [x]` immediately after each task.
-      - Commit at every logical boundary using `/git-commit` (suggested, user-style). Footers must include `Change: <change>` and `Task: <tasks.md step number>`.
+      - **Never run `git commit` yourself.** After completing each task, suggest `/git-commit` to the user — the user runs the command to review the message and finalize the commit. Footers must include `Change: <change>` and `Task: <tasks.md step number>`.
+      - If running unattended (no user present to run `/git-commit`), stage the changes with `git add <paths>` and continue; do not commit. The user will run `/git-commit` to clean up the staged but uncommitted work when they next take over.
    8. Pause and report if a task is genuinely ambiguous — do NOT invent answers.
 
    ## Verify
-   9. Run `/opsx:verify <change>` inside the worktree. This generates a CRITICAL/WARNING/SUGGESTION report and writes it to `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md`. Commit that record.
+   9. Run `/opsx:verify <change>` inside the worktree. This generates a CRITICAL/WARNING/SUGGESTION report and writes it to `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md`. Stage the record (do NOT commit — the user runs `/git-commit`).
    10. CRITICAL issues must be fixed before you report back — iterate on tasks until verify is clean or only WARNING/SUGGESTION remain.
 
    ## Report
@@ -107,6 +108,7 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
 
    ## DO NOT
    - DO NOT run `/ship`, `/opsx:archive`, or any merge command.
+   - **DO NOT run `git commit`.** Only stage changes with `git add`; the user runs `/git-commit` to finalize.
    - DO NOT touch the main checkout.
    - DO NOT switch branches — stay on `feature/<change>` in your worktree.
    - DO NOT delete the worktree when you finish.

@@ -115,25 +115,29 @@ The order is **merge → archive, every time**: code lands first via the merge, 
 
    If the task's `id` is a real Jira key (not a `-Dnn` draft), remind the user to transition the Jira issue in their tracker (we don't have API access).
 
-   Commit the task frontmatter update on `develop`:
+   Stage the task frontmatter update on `develop` and suggest `/git-commit`:
+
    ```bash
    git add backlog/tasks/<id>.md
-   git commit -m "chore(<change>): close task <id>"
    ```
+
+   > **Never run `git commit` automatically.** All commits are user-driven. The user runs `/git-commit` to review the close-out commit.
 
 9. **Report**
 
    Output:
    ```
-   ## Shipped: <change-name>
+## Shipped: <change-name>
 
-   - ✓ Verified: <summary line from the verification record>
-   - ✓ Merged: <feature-branch> → <integration_branch> (<merge strategy>)
-   - ✓ Archived: openspec/changes/archive/<date>-<change>/, specs synced on <integration_branch>
-   - ✓ Cleaned: worktree removed, local branch deleted
-   - ✓ Task closed: <task-id> (status: done)
+- ✓ Verified: <summary line from the verification record>
+- ✓ Merged: <feature-branch> → <integration_branch> (<merge strategy>)
+- ✓ Archived: openspec/changes/archive/<date>-<change>/, specs synced on <integration_branch>
+- ✓ Cleaned: worktree removed, local branch deleted
+- ✓ Task closed: <task-id> (status: done, staged for commit)
 
-   Pending backlog tasks: <list, if any — suggest the highest-priority one>
+**One commit still pending:** run `/git-commit` to record the close-out commit on `<integration_branch>`.
+
+Pending backlog tasks: <list, if any — suggest the highest-priority one>
    ```
 
 **Behavior with `git.work_mode != worktree`**
@@ -155,3 +159,4 @@ In all modes, the order rule is preserved: **verify (where applicable) → merge
 - If the merge fails (conflicts), stop. Do NOT proceed to archive. Tell the user to resolve the conflict in the main checkout, re-run `/ship`.
 - Confirm the merge strategy with the user the first time `/ship` runs in a session; default to squash.
 - Suggestions are advice, not actions: do not auto-call downstream commands; print them in the report.
+- **Never run `git commit` automatically** — stage the close-out task update and suggest `/git-commit` for the user to finalize.

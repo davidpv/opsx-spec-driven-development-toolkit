@@ -35,14 +35,15 @@ Import the existing Jira ticket `$ARGUMENTS` (a real Jira key like `PROJ-123`) i
 
 5. Write `backlog/tasks/<key>-<slug>.md` and run the `task-reviewer` subagent on it.
 
-6. **Commit on `develop` (commit discipline)**
+6. **Stage and suggest `/git-commit` (no auto-commit)**
+
+   > **Never run `git commit` automatically.** All commits are user-driven. Stage the task file on `develop` and suggest `/git-commit` for the user to finalize.
 
    ```bash
    git add backlog/tasks/<key>-<slug>.md
-   git commit -m "docs(tasks): import <key> from jira"
    ```
 
-   Skip only if the user explicitly asks to defer.
+   The user runs `/git-commit` to review the message and create the commit.
 
 7. Suggest next, based on the review:
    - Findings or thin scenarios → `/task-enrich <key>` to fill edge cases and estimate.

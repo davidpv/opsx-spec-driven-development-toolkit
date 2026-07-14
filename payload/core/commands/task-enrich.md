@@ -34,13 +34,14 @@ Enrich the task `$ARGUMENTS` (a Jira key like `PROJ-123`, or a path) in `backlog
 
 5. Run the `task-reviewer` subagent on the result. If it returns REVISE, fix the findings and re-run once.
 
-6. **Commit on `develop` (commit discipline)**
+6. **Stage and suggest `/git-commit` (no auto-commit)**
+
+   > **Never run `git commit` automatically.** All commits are user-driven. Stage the enriched task file on `develop` and suggest `/git-commit` for the user to finalize.
 
    ```bash
    git add backlog/tasks/<file>
-   git commit -m "docs(tasks): enrich <id>"
    ```
 
-   If the frontmatter `status:` change is in the same edit, that's fine — one commit covers both. Skip only if the user explicitly asks to defer.
+   If the frontmatter `status:` change is in the same edit, that's fine — the user creates one commit via `/git-commit` that covers both.
 
 7. Suggest next: `/task-jira <id>` to export, or `/opsx-propose` referencing the task to start implementation.
