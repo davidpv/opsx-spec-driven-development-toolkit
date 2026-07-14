@@ -50,7 +50,7 @@ The daily path is just three wrapper commands (with `/next` as a "what now?" hel
 | `/work [changes...]` | Build a change in its own worktree (apply + verify); fans out to SubAgents for multiple changes |
 | `/ship <change>` | Verify gate → merge → archive → cleanup worktree → close task |
 
-Everything under `/opsx:*` (and `/task-*`, `/review-*`, `/git-commit`) is an internal primitive the wrappers call — not part of the daily path.
+Everything under `/opsx:*` (and `/task-*`, `/review-*`, `/git-commit`) is an internal primitive the wrappers call — not part of the daily path. **`/git-commit` is the user's tool** — no pipeline command (including the LLM) auto-commits; the user always approves commit messages via `/git-commit`.
 
 ## Quick start
 
@@ -89,9 +89,10 @@ For non-trivial initiatives, `/start` will chain the backlog steps (requirements
 - **Verify before merge.** `/ship` refuses to merge unless a clean verify report exists for the current state of the branch.
 - **Merge, then archive.** `/ship` merges `feature/<change>` → `develop` first, then archives (syncs delta specs into `openspec/specs/`) on `develop`.
 - **`main` is release-only.** Proposals and merges land on the integration branch (`develop` by default). Each change gets a worktree at `.worktrees/<change>/` on `feature/<change>`. Configure branches and `git.work_mode` (`worktree` / `feature` / `flexible`) in `workflow.yaml`.
+- **The LLM never auto-commits.** All commits are user-driven. Every command (`/opsx:*`, `/work`, `/ship`, `/git-commit`, `/task-*`, `/req-capture`) ends by suggesting `/git-commit`, and only the user runs it. After modifying any file — code, specs, artifacts, config — the LLM stages and suggests `/git-commit`; the user reviews the message and finalizes the commit.
 - **Spec wrong or drifted?** Never diverge silently — run `/opsx:sync` to fix the spec first, then resume.
 
-Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → Commit → merge → archive**. Task IDs ARE Jira keys (`PROJ-123`; `PROJ-Dnn` for drafts).
+Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → user commits via `/git-commit` → merge → archive**. Task IDs ARE Jira keys (`PROJ-123`; `PROJ-Dnn` for drafts).
 
 ## Commands
 
@@ -121,7 +122,7 @@ The three wrappers above are all you need day to day. The primitives they call:
 | `/opsx:propose <name>` | Create a change (proposal, delta specs, design, tasks) on `develop` |
 | `/review-change <name>` | Spec-reviewer audit + `openspec validate --strict` |
 | `/opsx:apply <name>` | Create the worktree and implement tasks inside it |
-| `/git-commit` | Conventional commit traced to change/step/Jira task |
+| `/git-commit` | Conventional commit traced to change/step/Jira task — **the user-only commit tool; LLM never auto-commits** |
 | `/opsx:verify <name>` | Verify implementation matches artifacts (required before `/ship`) |
 | `/opsx:sync` | Sync specs with reality when they drift |
 | `/opsx:archive <change>` | Sync delta specs into `openspec/specs/` after merge |

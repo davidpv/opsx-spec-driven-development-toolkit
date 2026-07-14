@@ -34,13 +34,14 @@ Generate tasks from the discovery doc `backlog/discovery/$ARGUMENTS.md` using `t
 
 5. Write each task to `backlog/tasks/<id>-<slug>.md` with frontmatter filled: `id`, `title`, `status: draft`, `discovery`, `priority` (MoSCoW from the discovery's goals), `language`.
 
-6. **Commit each task individually on `develop` (commit discipline)**
+6. **Stage each task and suggest `/git-commit` (no auto-commit)**
+
+   > **Never run `git commit` automatically.** All commits are user-driven. Stage each task file individually on `develop` and suggest `/git-commit` after each one so the user can review and finalize.
 
    ```bash
    git add backlog/tasks/<id>-<slug>.md
-   git commit -m "docs(tasks): add <id> from <discovery-topic>"
    ```
 
-   One commit per task. Skip only if the user explicitly asks to batch.
+   The user runs `/git-commit` for each staged task — one commit per task, as the user wishes. If the user prefers to batch all tasks into a single commit, they can stage them together and run `/git-commit` once.
 
 7. Suggest `/task-enrich <id>` for the ones to refine, or `/task-jira <id>` to export.

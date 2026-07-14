@@ -100,16 +100,15 @@ Archive a completed change in the experimental workflow.
    mv "<changeRoot>" "<planningHome.changesDir>/archive/YYYY-MM-DD-<name>"
    ```
 
-6. **Commit the archive result on the integration branch**
+6. **Stage the archive result and suggest `/git-commit`**
 
-   The spec-sync is a meaningful state change. Commit it so the next proposal sees the updated `openspec/specs/`:
+   > **Never run `git commit` automatically.** All commits are user-driven. The spec-sync is a meaningful state change, but the user creates the commit; the LLM only stages and suggests `/git-commit`.
 
    ```bash
    git add openspec/specs/
-   git commit -m "chore(<change>): archive openspec change"
    ```
 
-   Skip if the user has already committed or asks to defer.
+   The user runs `/git-commit` to review the message and finalize the commit so the next proposal sees the updated `openspec/specs/`.
 
 7. **Display summary**
 
@@ -128,7 +127,7 @@ Archive a completed change in the experimental workflow.
 **Change:** <change-name>
 **Schema:** <schema-name>
 **Archived to:** the archive path derived from `planningHome.changesDir`/YYYY-MM-DD-<name>/
-**Specs:** ✓ Synced to main specs and committed on <integration_branch>
+**Specs:** ✓ Synced to main specs and **staged on <integration_branch>** (run `/git-commit` to finalize)
 
 All artifacts complete. All tasks complete.
 ```
@@ -143,3 +142,4 @@ All artifacts complete. All tasks complete.
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
 - The final spec-sync commit lands on the integration branch, not on a worktree branch
+- **Never run `git commit` automatically** — stage the archive result and suggest `/git-commit` for the user to finalize

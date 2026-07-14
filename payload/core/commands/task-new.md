@@ -36,13 +36,14 @@ Create one task in `backlog/tasks/` from scratch using `templates/task.md`. `$AR
 
 5. Write `backlog/tasks/<id>-<slug>.md` with frontmatter: `id`, `title`, `status: draft`, `discovery: ~`, `priority` (ask, MoSCoW), `language`.
 
-6. **Commit on `develop` (commit discipline)**
+6. **Stage and suggest `/git-commit` (no auto-commit)**
+
+   > **Never run `git commit` automatically.** All commits are user-driven. Stage the task file on `develop` and suggest `/git-commit` for the user to finalize.
 
    ```bash
    git add backlog/tasks/<id>-<slug>.md
-   git commit -m "docs(tasks): add <id>"
    ```
 
-   Skip only if the user explicitly asks to defer.
+   The user runs `/git-commit` to review the message and create the commit.
 
 7. Suggest next: `/task-enrich <id>` to add edge cases and an estimate, then `/task-jira <id>` to export and create the issue in Jira (reminder: confirm the real key afterwards), or `/opsx:propose` if the task is ready to drive a change.

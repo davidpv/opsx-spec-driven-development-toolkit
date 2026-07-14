@@ -96,7 +96,7 @@ Implement tasks from an OpenSpec change. Operates inside a git worktree by defau
    - Make the code changes required (inside the worktree / feature branch)
    - Keep changes minimal and focused
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - **At each task boundary, suggest `/git-commit`** so the user reviews the message. Do not auto-commit. The commit must happen before moving to the next task — this is the recovery point pattern.
+   - **Never run `git commit` automatically.** At each task boundary, suggest `/git-commit` so the user reviews the message and finalizes the commit themselves. The commit must happen before moving to the next task — this is the recovery point pattern, but the LLM does not create the commit; the user does via `/git-commit`.
 
    **Pause if:**
    - Task is unclear → ask for clarification
@@ -122,7 +122,7 @@ Worktree: <worktree-dir>/<change>/ on branch <worktree-branch>
 
 Working on task 3/7: <task description>
 [...implementation happening...]
-✓ Task complete — next: /git-commit
+✓ Task complete — next: /git-commit (LLM does not auto-commit; user reviews and runs /git-commit)
 ```
 
 **Output On Completion**
@@ -174,7 +174,7 @@ What would you like to do?
 - Pause on errors, blockers, or unclear requirements - don't guess
 - Use contextFiles from CLI output, don't assume specific file names
 - **All edits MUST happen inside the worktree** (or feature branch) — never in the main checkout for another change
-- **Commit at every task boundary** by suggesting `/git-commit` — never edit the next task on top of an uncommitted state
+- **Never run `git commit`.** Suggest `/git-commit` at every task boundary so the user creates the commit themselves — never edit the next task on top of an uncommitted state, but never commit on the user's behalf either.
 
 **Fluid Workflow Integration**
 

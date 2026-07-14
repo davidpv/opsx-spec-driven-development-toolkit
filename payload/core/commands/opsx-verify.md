@@ -124,14 +124,15 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
    - Write a short file at `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md` (or append to a running `.openspec/verify.log`) containing: change name, branch, timestamp, the summary scorecard, the CRITICAL/WARNING/SUGGESTION lists, and the final assessment.
    - If writing the record fails, still print the report but warn the user that `/ship` may treat the change as unverified.
 
-9. **Commit the verification result**
+9. **Stage the verification result and suggest `/git-commit`**
+
+   > **Never run `git commit` automatically.** All commits are user-driven, even for internal state files like verification records. The LLM stages and suggests `/git-commit`; the user finalizes.
 
    ```bash
    git add .openspec/
-   git commit -m "chore(<change>): record verification report"
    ```
 
-   Skip if the user has already committed it or asks to defer. The commit message is intended to be auto-applied; do not require user review for this commit (it carries no code).
+   The user runs `/git-commit` to review and create the commit on the feature/worktree branch.
 
 10. **Generate Verification Report**
 

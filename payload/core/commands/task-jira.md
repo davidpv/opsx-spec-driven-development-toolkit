@@ -32,11 +32,12 @@ Export the task `$ARGUMENTS` (a Jira key like `PROJ-123`, `all`, or a status lik
 
 4. **Draft IDs**: if any exported task has a draft ID (`<project_key>-Dnn`), remind the user to create the issue in Jira and then rename the task file and its `id:` frontmatter to the real key — offer to do the rename if they provide the keys now.
 
-5. **Commit on `develop` (commit discipline — optional but recommended)**
+5. **Stage and suggest `/git-commit` (no auto-commit, optional)**
+
+   > **Never run `git commit` automatically.** All commits are user-driven. The Jira exports are paste-targets; staging them is optional, and the commit is the user's decision.
 
    ```bash
    git add backlog/exports/jira/
-   git commit -m "docs(tasks): export <count> tasks to jira markup"
    ```
 
-   Skip if the user prefers to leave exports uncommitted (they are paste-targets, not source).
+   The user runs `/git-commit` if they want the export history captured. Skip the suggestion entirely if the user prefers to leave exports uncommitted.
