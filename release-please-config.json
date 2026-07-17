@@ -16,8 +16,7 @@
         { "type": "chore", "section": "Chores", "hidden": true },
         { "type": "config", "section": "Chores", "hidden": true },
         { "type": "style", "section": "Style", "hidden": true }
-      ],
-      "version": "1.2.0"
+      ]
     }
   }
 }
