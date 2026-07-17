@@ -22,7 +22,7 @@ Only ever suggest a wrapper command — `/start`, `/work`, or `/ship`. Never sug
 | Nothing in backlog, no in-flight change | `/start` — guided entry: it routes an existing Jira ticket, a direct proposal, or creating the task first |
 | Work still being set up on `develop` (discovery without tasks, `status: draft` tasks, or a change with incomplete/unreviewed artifacts) | `/start` — it continues the on-ramp: task setup → propose → review |
 | Reviewed proposal on `develop`, not yet built (no worktree, or a worktree with unchecked tasks / uncommitted work / verify not yet run) | `/work <name>` — builds it in a worktree (apply + verify), or resumes an in-progress build |
-| Multiple active changes ready to build | `/work [changes...]` — fans out one SubAgent per non-conflicting change |
+| Multiple active changes ready to build | `/work [changes...]` — mode is governed by `workflow.use_subagents` in `payload/core/workflow.yaml` (default `yes`): `yes` fans out one SubAgent per non-conflicting change, `no` applies them sequentially on the main checkout |
 | Build complete and verified (report on `feature/<change>`, PR open, or work pushed) | `/ship <name>` — verify gate → merge → archive → cleanup → close |
 | Worktree branch merged into `develop` but not archived, or worktree path still lingering | `/ship <name>` — re-run to finish archive + cleanup |
 | Change archived but task not `done` | `/ship <name>` — re-run to finish close-out, then `/start` for the next |

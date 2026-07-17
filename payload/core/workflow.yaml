@@ -29,6 +29,12 @@ git:
     base_branch: develop       # branched off the integration branch (overrides integration_branch if both set)
     auto_remove: true          # /ship removes the worktree after merge; set to false to keep it
 
+# Orchestration toggle — governs how /work handles multiple changes.
+# Default: yes (parallel SubAgents, one per non-conflicting change).
+# Set to `no` to apply changes sequentially on the main checkout (no SubAgents).
+workflow:
+  use_subagents: yes          # yes | no — read by /work; defaults to `yes` if missing
+
 platform:
   provider: auto               # auto | github | gitlab | none
   # auto: detect from `git remote get-url origin`; use gh/glab CLI if available.

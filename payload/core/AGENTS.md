@@ -14,7 +14,7 @@ The pipeline is exposed to users through four top-level wrappers. Everything els
 
 - **`/start`** — entry: route new work (existing Jira ticket / direct change / new task) and chain up to a reviewed proposal on `develop`, ready for `/work`.
 - **`/next`** — recovery point: inspect state and suggest the next step (always a wrapper). Always suggest, never auto-advance.
-- **`/work [changes...]`** — build: implement a change in its own git worktree (apply + verify). One change or several — with multiple changes it fans out to SubAgents in parallel. SubAgents do not merge.
+- **`/work [changes...]`** — build: implement a change in its own git worktree (apply + verify). One change or several — with multiple changes its behaviour is governed by `workflow.use_subagents` in `payload/core/workflow.yaml` (default `yes`): `yes` fans out one SubAgent per non-conflicting change, in parallel worktrees; `no` applies them sequentially on the main checkout, one worktree per change, no SubAgents. SubAgents do not merge.
 - **`/ship <change>`** — closing button: verify gate + merge into the integration branch + archive on develop + cleanup worktree + close the linked task. One command = done.
 
 The daily path is **`/start → /work → /ship`**, with `/next` as the "what now?" helper. Everything under `/opsx:*` (plus `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) is an internal primitive the wrappers call — never suggest them to the user as the next step.
@@ -32,7 +32,7 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
 6. **Verify in the worktree** — `/opsx:verify <name>` runs inside `.worktrees/<change>/`. Confirms completeness (tasks done, requirements present), correctness (requirements implemented, scenarios covered), and coherence (design followed, patterns consistent). Refuses if not run inside the worktree.
 7. **Merge, then archive, then close** — `/ship <name>` is the one-button close. Steps in order: verify gate → merge the worktree branch into `develop` (squash by default, gh/glab/web-UI fallback as today) → run `/opsx:archive` on `develop` so delta specs sync into `openspec/specs/` with the full view of every other merged change → clean up the worktree and local branch → close the linked task.
 
-For multiple independent changes, run `/work` instead of `/opsx:apply`: it spawns one SubAgent per non-conflicting change, each in its own worktree. SubAgents apply + verify and report back. The user inspects each report, then runs `/ship` per change in sequence so each merge + archive has the right view of `develop`.
+For multiple independent changes, run `/work` instead of `/opsx:apply`: its execution mode is governed by `workflow.use_subagents` (`yes`/`no`, default `yes`). With `yes`, `/work` spawns one SubAgent per non-conflicting change, each in its own worktree; SubAgents apply + verify and report back. With `no`, `/work` runs apply + verify itself, one change at a time, on the main checkout (one worktree per change), without spawning SubAgents. In both modes the user inspects the consolidated report and runs `/ship` per change in sequence so each merge + archive has the right view of `develop`.
 
 Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → Commit → PR**. Note: "task" means a backlog/Jira task; tasks.md inside a change holds implementation steps.
 
