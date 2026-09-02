@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0](https://github.com/davidpv/opsx-spec-driven-development-toolkit/compare/opsx-v1.3.0...opsx-v2.0.0) (2026-09-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workflow:** git.work_mode is now automated | supervised. worktree remains a deprecated alias of automated. feature and flexible are no longer valid.
+
+### Features
+
+* **workflow:** add supervised work mode ([7339456](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/73394566624f5a55be7b10eda848268c02b89bb3))
+* **workflow:** replace work_mode with automated and supervised ([a71d337](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/a71d337451e19865d351f20a7edf601e10973aa9))
+
 ## [1.3.0](https://github.com/davidpv/opsx-spec-driven-development-toolkit/compare/opsx-v1.2.4...opsx-v1.3.0) (2026-07-17)
 
 
