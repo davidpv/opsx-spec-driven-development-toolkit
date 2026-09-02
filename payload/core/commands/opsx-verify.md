@@ -2,26 +2,25 @@
 description: Verify implementation matches change artifacts before merging (run inside the worktree)
 ---
 
-Verify that an implementation matches the change artifacts (specs, tasks, design) before merging. This command MUST run inside the git worktree for the change so it sees the same code that will be merged.
+Verify that an implementation matches the change artifacts (specs, tasks, design) before merging. This command MUST run in the isolated checkout for the change so it sees the same code that will be merged.
 
 **Input**: Optionally specify a change name (e.g., `/opsx-verify add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
 
-0. **Worktree guard**
+0. **Isolation guard**
 
-   Read `git.work_mode` and `git.worktree.dir` from `workflow.yaml`. If `work_mode == worktree`:
+   Read `git.work_mode` and `git.worktree.dir` from `workflow.yaml`. Resolve: `automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop.
 
    ```bash
    git worktree list
+   git branch --show-current
    pwd
    ```
 
-   - Compute the expected worktree path: `<worktree-dir>/<change>/`.
-   - If `pwd` is not inside that path, refuse and tell the user to `cd <worktree-dir>/<change>` first, then re-run.
+   - **automated:** compute the expected worktree path `<worktree-dir>/<change>/`. If `pwd` is not inside that path, refuse and tell the user to `cd <worktree-dir>/<change>` first, then re-run.
+   - **supervised:** refuse if current branch is `main`. Refuse if current branch is the integration branch (verifying on `develop` would test a different snapshot than what gets merged). Otherwise run in cwd. Do not require `.worktrees/<change>/`.
    - Print the working branch so the verification report records it.
-
-   This guard exists because verifying on `develop` would test a different snapshot than what gets merged.
 
 1. **If no change name provided, prompt for selection**
 
@@ -119,9 +118,9 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
 8. **Persist a verification record (for `/ship` to read)**
 
-   `/ship` looks for a verification record before it will merge. Write it to the worktree path so the same agent or a follow-up agent can read it:
+   `/ship` looks for a verification record before it will merge. Write it in the isolated checkout so the same agent or a follow-up agent can read it:
 
-   - Write a short file at `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md` (or append to a running `.openspec/verify.log`) containing: change name, branch, timestamp, the summary scorecard, the CRITICAL/WARNING/SUGGESTION lists, and the final assessment.
+   - Write a short file at `.openspec/verify-<timestamp>.md` (`automated`: under `<worktree-dir>/<change>/`; `supervised`: cwd) (or append to a running `.openspec/verify.log`) containing: change name, branch, timestamp, the summary scorecard, the CRITICAL/WARNING/SUGGESTION lists, and the final assessment.
    - If writing the record fails, still print the report but warn the user that `/ship` may treat the change as unverified.
 
 9. **Stage the verification result and suggest `/git-commit`**

@@ -6,6 +6,7 @@ import { readTextIfExists, sha256, writeText } from "../lib/fsutil.js";
 import { readManifest, writeManifest } from "../lib/manifest.js";
 import { applyManagedBlock, extractManagedBlock, summariseBlockDiff } from "../lib/merge.js";
 import { loadPayload } from "../lib/payload.js";
+import { migrationTip } from "../lib/work-mode.js";
 
 export interface UpdateOptions {
   force?: boolean;
@@ -189,12 +190,8 @@ export async function updateCommand(opts: UpdateOptions, packageVersion: string)
     p.log.info("Re-run `opsx update` and choose 'apply' to pick up the new managed-block content.");
   }
 
-  if (manifest.config.workMode !== "worktree") {
-    const current = manifest.config.workMode;
-    p.log.info(
-      `Tip: workflow.yaml is on git.work_mode: ${current}. The new default is worktree (one git worktree per change, /opsx:apply creates it). Switch by editing workflow.yaml and setting git.work_mode: worktree.`,
-    );
-  }
+  const tip = migrationTip(manifest.config.workMode);
+  if (tip) p.log.info(tip);
 
   p.outro("Done.");
 }

@@ -17,7 +17,7 @@ Import the existing Jira ticket `$ARGUMENTS` (a real Jira key like `PROJ-123`) i
    ```
 
    - Read `git.integration_branch` from `workflow.yaml`.
-   - If the current branch is not the integration branch, refuse and tell the user to `git checkout <integration_branch>` first.
+   - If the current branch is not the integration branch, resolve `git.work_mode`. **automated:** refuse and tell the user to `git checkout <integration_branch>` first. **supervised:** refuse, NEVER `git checkout` — this session is for `/work`; open a planning session on `<integration_branch>`.
    - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout.
 
 1. Read `workflow.yaml` (`jira.project_key`, `backlog.tasks_dir`). If `$ARGUMENTS` is missing or doesn't look like a Jira key, ask for it. If the key's project prefix differs from `jira.project_key`, warn but don't block.

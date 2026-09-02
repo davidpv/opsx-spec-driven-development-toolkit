@@ -4,22 +4,27 @@ description: Open a PR for the current change against the integration branch (pl
 
 Open a pull/merge request for the change `$ARGUMENTS` (or the one inferred from the current branch — strip a leading Jira key like `PROJ-123-` from the branch name before matching against `openspec/changes/`).
 
-With `git.work_mode: worktree` (default), the change is typically implemented inside `<worktree-dir>/<change>/` on a `feature/<change>` branch. `/ship` handles the merge internally, so `/pr-open` is optional in that mode — most users skip it and let `/ship` squash-merge directly. `/pr-open` is still useful when:
+Resolve `git.work_mode` (`automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop).
 
-- The team requires a reviewed PR before merge (set `git.work_mode: feature` instead).
+- **automated:** the change is typically implemented inside `<worktree-dir>/<change>/` on a `feature/<change>` branch. `/ship` handles the merge internally, so `/pr-open` is optional — most users skip it and let `/ship` squash-merge directly.
+- **supervised:** the GUI usually has the PR button. `/pr-open` is still useful when you want a GitHub/GitLab URL from the CLI. Push the **current** branch (do not rename it). Never `git checkout -b`.
+
+`/pr-open` is still useful when:
+
 - A external reviewer wants a GitHub/GitLab PR URL before the change lands.
+- `automated` users who want a reviewed PR before `/ship` merges.
 
 **Steps**
 
 1. Read `workflow.yaml` (`git.integration_branch`, `git.work_mode`, `git.worktree.dir`, `platform.provider`). Verify: working tree clean, all tasks in `tasks.md` checked. If tasks remain, list them and ask whether to continue as draft.
 
-   If the worktree-built change has not been pushed yet (`git rev-parse --verify origin/<feature-branch>` fails), `/pr-open` pushes it:
-   ```bash
-   git push -u origin "<feature-branch>"
-   ```
-   This is the common case for worktree branches — they have no upstream until you push.
+   If the current branch IS the integration branch: there is nothing to open a PR against. Tell the user, and offer to skip the PR and go to `/ship` (archive path). Do **not** rewrite history onto a new feature branch in `supervised` mode.
 
-   If the current branch IS the integration branch (flexible mode), there is nothing to open a PR against: tell the user, and offer either (a) skip the PR and go straight to `/ship`, or (b) move the unpushed commits to a new feature branch (named `feature/<task id>-<change>` if the change is linked to a task with a real Jira key, else `feature/<change>`) via `git branch <name> && git reset --hard origin/<integration>` to get a reviewed PR.
+   If the implementation branch has not been pushed yet (`git rev-parse --verify origin/<current-branch>` fails), `/pr-open` pushes it:
+   ```bash
+   git push -u origin "<current-branch>"
+   ```
+   In `automated` this is often `feature/<change>` with no upstream. In `supervised` use the GUI's branch name as-is.
 
 2. Run `/review-change <change>` (spec-reviewer). On REVISE, show findings and stop unless the user overrides.
 

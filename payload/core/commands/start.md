@@ -27,7 +27,7 @@ After a route is chosen, `/start` chains the downstream setup automatically so t
    - **A →** ask for the Jira key (e.g. `PROJ-123`) if not in `$ARGUMENTS`, then run `/task-import <key>`. After the task lands in `backlog/tasks/`, ask the user whether to also propose now (so the user ends with a reviewed proposal ready for `/work`).
      - If yes: chain into `/opsx:propose <name>` (inferring or asking for a kebab-case change name; if the task has a real Jira key, the build branch will be `feature/<key>-<change>`).
      - Then suggest `/work <name>` to build it — do not build here.
-     - **Never skip the gates downstream.** Propose must run on the integration branch; `/work` creates the worktree.
+     - **Never skip the gates downstream.** Propose must run on the integration branch. `/work` creates the worktree in `automated` mode, or uses the GUI workspace in `supervised` mode.
 
    - **B →** ask one follow-up with **AskUserQuestion**: does the user already know what to change?
      - Yes, the change is clear → `/opsx:propose <name>` (ask for a short kebab-case change name). After artifacts land on the integration branch, suggest `/work <name>` to build — do not build silently.
@@ -37,8 +37,10 @@ After a route is chosen, `/start` chains the downstream setup automatically so t
      - **Initiative** (several tasks, requirements unclear) → `/req-capture <topic>`, then chain into `/task-generate <topic>` (which lists the resulting task IDs), then `/opsx:propose` per task — confirm with the user the first time you do this in a session. Once proposals are ready, suggest `/work`.
      - **Single task** (one verifiable outcome, scope clear) → `/task-new <title>`. After the task lands, ask the user whether to also propose now; if yes, chain into `/opsx:propose <name>`, then suggest `/work <name>`.
 
-4. **Never skip the gates downstream.** Whatever the route, the golden rule holds: no code until an OpenSpec change exists, is reviewed, and the working branch (worktree or feature branch) is resolved. `/start` only chooses the on-ramp and walks the first steps of the chain — the user confirms before any commit or worktree creation happens.
+4. **Never skip the gates downstream.** Whatever the route, the golden rule holds: no code until an OpenSpec change exists, is reviewed, and the isolated checkout is resolved. `/start` only chooses the on-ramp and walks the first steps of the chain — the user confirms before any commit or worktree creation happens.
 
-5. **After `/start` finishes a chain**, print a one-line summary: where the user ended up (a reviewed proposal on the integration branch), and the suggested next step — always `/work <name>` to build it (or `/next` if the user wants to double-check the state first).
+   Resolve `git.work_mode`. If `supervised` and the current branch is not the integration branch: refuse. NEVER `git checkout`. Tell the user this session is for `/work`; open a planning session on `<integration_branch>` for `/start`. If `supervised` and on the integration branch, print the two-session reminder (planning here, `/work` in a new GUI workspace).
+
+5. **After `/start` finishes a chain**, print a one-line summary: where the user ended up (a reviewed proposal on the integration branch), and the suggested next step — always `/work <name>` to build it (`supervised`: after opening a GUI workspace from develop) (or `/next` if the user wants to double-check the state first).
 
 **Output format:** after routing, one line stating the situation chosen and the command now running. If the user aborts the questions, list the three routes with their commands so they can invoke one manually.

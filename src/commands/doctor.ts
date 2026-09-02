@@ -3,8 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
+import { parse as parseYaml } from "yaml";
 import type { TargetName } from "../adapters/types.js";
 import { readManifest } from "../lib/manifest.js";
+import { resolveWorkMode } from "../lib/work-mode.js";
 
 interface Check {
   label: string;
@@ -17,6 +19,25 @@ function bin(cmd: string): { ok: boolean; detail: string } {
   const r = spawnSync(cmd, ["--version"], { encoding: "utf8", shell: process.platform === "win32" });
   if (r.error || r.status !== 0) return { ok: false, detail: "not found in PATH" };
   return { ok: true, detail: (r.stdout || r.stderr).trim().split("\n")[0] ?? "found" };
+}
+
+function git(cwd: string, args: string[]): string | null {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8" });
+  if (r.error || r.status !== 0) return null;
+  return r.stdout.trim();
+}
+
+function isLinkedWorktree(cwd: string): boolean {
+  const gitDir = git(cwd, ["rev-parse", "--git-dir"]);
+  const common = git(cwd, ["rev-parse", "--git-common-dir"]);
+  if (!gitDir || !common) return false;
+  return path.resolve(cwd, gitDir) !== path.resolve(cwd, common);
+}
+
+function underOpsxWorktrees(cwd: string, dir: string): boolean {
+  const abs = path.resolve(cwd);
+  const marker = `${path.sep}${dir.replace(/[/\\]+$/, "")}${path.sep}`;
+  return abs.includes(marker) || abs.endsWith(`${path.sep}${dir.replace(/[/\\]+$/, "")}`);
 }
 
 const TARGET_BINS: Record<TargetName, { cmd: string; label: string }> = {
@@ -43,10 +64,11 @@ export async function doctorCommand(): Promise<void> {
     required: true,
   });
 
+  const gitOk = git(cwd, ["rev-parse", "--is-inside-work-tree"]) === "true" || fs.existsSync(path.join(cwd, ".git"));
   checks.push({
     label: "Git repository",
-    ok: fs.existsSync(path.join(cwd, ".git")),
-    detail: fs.existsSync(path.join(cwd, ".git")) ? "found" : "not a git repo (the workflow assumes git)",
+    ok: gitOk,
+    detail: gitOk ? "found" : "not a git repo (the workflow assumes git)",
     required: true,
   });
 
@@ -59,11 +81,61 @@ export async function doctorCommand(): Promise<void> {
     checks.push({ label, ok: r.ok, detail: r.detail, required: false });
   }
 
+  const wfPath = path.join(cwd, "workflow.yaml");
+  let yamlMode: string | undefined;
+  let worktreeDir = ".worktrees";
+  if (fs.existsSync(wfPath)) {
+    try {
+      const wf = parseYaml(fs.readFileSync(wfPath, "utf8")) as {
+        git?: { work_mode?: string; worktree?: { dir?: string }; integration_branch?: string };
+      };
+      yamlMode = wf.git?.work_mode;
+      if (wf.git?.worktree?.dir) worktreeDir = String(wf.git.worktree.dir);
+    } catch {
+      yamlMode = undefined;
+    }
+  }
+  const rawMode = yamlMode ?? manifest?.config.workMode;
+  const resolved = resolveWorkMode(rawMode);
+  if (!resolved.ok) {
+    checks.push({ label: "git.work_mode", ok: false, detail: resolved.message, required: false });
+  } else {
+    const alias = resolved.alias ? ` (yaml still says ${resolved.alias}; rename to ${resolved.mode} when convenient)` : "";
+    checks.push({
+      label: "git.work_mode",
+      ok: true,
+      detail: `${resolved.mode}${alias}`,
+      required: false,
+    });
+  }
+
   let failures = 0;
   for (const c of checks) {
     const mark = c.ok ? pc.green("✔") : c.required ? pc.red("✘") : pc.yellow("▲");
     if (!c.ok && c.required) failures++;
     p.log.message(`${mark} ${c.label} — ${c.detail}`);
+  }
+
+  if (resolved.ok && gitOk) {
+    const linked = isLinkedWorktree(cwd);
+    const hostEnv = Boolean(process.env.SUPERSET_WORKSPACE_NAME || process.env.SUPERSET_ROOT_PATH);
+    const opsxTree = underOpsxWorktrees(cwd, worktreeDir);
+    if (resolved.mode === "automated" && (hostEnv || (linked && !opsxTree))) {
+      p.log.warn(
+        "This checkout looks like a GUI-managed worktree (Superset / VS Code Agents / linked worktree outside .worktrees/). Set git.work_mode: supervised so opsx does not create or delete another worktree.",
+      );
+    }
+    if (resolved.mode === "supervised") {
+      const branch = git(cwd, ["branch", "--show-current"]);
+      if (!linked && !hostEnv) {
+        p.log.info(
+          `supervised mode, planning session${branch ? ` on ${branch}` : ""}. Create a GUI workspace from the integration branch to run /work.`,
+        );
+      }
+    }
+    if (resolved.alias) {
+      p.log.info("git.work_mode: worktree is a deprecated alias of automated.");
+    }
   }
 
   if (failures) {

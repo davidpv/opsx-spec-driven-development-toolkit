@@ -17,7 +17,8 @@ export interface InitConfig {
   language: "es" | "en";
   mainBranch: string;
   integrationBranch: string;
-  workMode: "feature" | "flexible" | "worktree";
+  /** New projects: automated | supervised. Manifests may still carry legacy values. */
+  workMode: "automated" | "supervised" | "worktree" | "feature" | "flexible";
 }
 
 export interface PayloadFile {

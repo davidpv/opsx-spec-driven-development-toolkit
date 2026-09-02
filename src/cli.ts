@@ -22,7 +22,7 @@ program
   .option("--language <lang>", "default artifact language: es|en")
   .option("--main-branch <name>", "release branch (default: main)")
   .option("--integration-branch <name>", "integration branch (default: develop)")
-  .option("--work-mode <mode>", "feature|flexible")
+  .option("--work-mode <mode>", "automated|supervised (alias: worktree)")
   .option("-y, --yes", "accept defaults, no prompts")
   .option("-f, --force", "overwrite existing differing files / re-init")
   .action((opts) => initCommand(opts, pkg.version));

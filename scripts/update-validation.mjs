@@ -167,8 +167,8 @@ assert(/Added:/.test(updateOut), "update output: shows Added section");
 assert(/Updated:/.test(updateOut), "update output: shows Updated section");
 
 // I. Tip is printed for projects not yet on worktree mode
-assert(/Tip.*work_mode:\s*flexible/i.test(updateOut), "update output: suggests switching to worktree mode for legacy projects");
-assert(/Tip.*worktree/i.test(updateOut), "update output: tip mentions worktree");
+assert(/Tip.*work_mode:\s*flexible/i.test(updateOut), "update output: warns that flexible is no longer supported");
+assert(/Tip.*automated/i.test(updateOut) && /supervised/i.test(updateOut), "update output: tip offers automated or supervised");
 
 // I. --force should overwrite the user-modified file
 console.log("\n— re-running opsx update --force —");
