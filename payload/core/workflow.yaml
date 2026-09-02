@@ -9,29 +9,34 @@ git:
   # key, branches are <prefix><task-id>-<change-name>
   # (e.g. feature/PROJ-123-speed-up-search); otherwise <prefix><change-name>.
   # Commands parse both forms when inferring the change from the branch name.
-  # Working mode for implementation:
-  #   worktree → /opsx:apply creates a git worktree per change at .worktrees/
-  #              on a fresh feature/<change> branch off integration_branch.
-  #              Apply + verify run inside the worktree; /ship merges back.
-  #              Default for new projects (matches the OpenSpec + git-worktree
-  #              flow from https://intent-driven.dev/blog/2026/04/01/openspec-git-worktrees-opencode/).
-  #   feature  → always require feature/<change> branches + PR (strict), but
-  #              without the worktree isolation. Use when worktrees can't run.
-  #   flexible → feature branches recommended, but committing directly on the
-  #              integration branch is allowed; /ship then skips PR/merge.
-  work_mode: worktree
+  # Working mode — who owns git isolation. Commits stay user-driven in BOTH
+  # modes (/git-commit or the GUI commit button). "Automated" means isolation
+  # is automated, not that the LLM auto-commits.
+  #   automated  → opsx creates a git worktree per change at .worktrees/ on a
+  #                fresh feature/<change> branch off integration_branch.
+  #                Apply + verify run inside the worktree; /ship merges back.
+  #                Default for new projects (CLI agents: opencode TUI, Claude
+  #                Code / Codex in a terminal). Deprecated alias: worktree.
+  #   supervised → the agent GUI (VS Code Agents, Superset, Copilot, Cursor)
+  #                already isolated this session. Apply + verify run in cwd.
+  #                Never git worktree add/remove, never create/switch/delete
+  #                branches, never merge. /ship verifies and tells the user
+  #                to merge in the GUI; archive runs later on develop.
+  work_mode: automated
+
   commit_convention: conventional  # https://www.conventionalcommits.org
   commit_scope_from: change    # scope = openspec change name unless overridden
 
-  # Worktree settings (only used when work_mode == worktree).
+  # Worktree settings (only used when work_mode == automated).
   worktree:
     dir: .worktrees            # per-change worktrees live here, gitignored
     base_branch: develop       # branched off the integration branch (overrides integration_branch if both set)
     auto_remove: true          # /ship removes the worktree after merge; set to false to keep it
 
-# Orchestration toggle — governs how /work handles multiple changes.
+# Orchestration toggle — governs how /work handles multiple changes in automated mode.
 # Default: yes (parallel SubAgents, one per non-conflicting change).
 # Set to `no` to apply changes sequentially on the main checkout (no SubAgents).
+# Ignored when work_mode == supervised (the GUI already parallelizes; one change per session).
 workflow:
   use_subagents: yes          # yes | no — read by /work; defaults to `yes` if missing
 

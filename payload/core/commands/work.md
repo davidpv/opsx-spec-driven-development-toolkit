@@ -2,14 +2,18 @@
 description: Apply changes via SubAgents (parallel, default) or sequentially — gated by workflow.use_subagents; verify and report back (does not merge)
 ---
 
-`/work` is the batch-implementation entrypoint. It runs the same daily commands (`/opsx:apply`, `/opsx:verify`) for one or more changes. Its execution mode is governed by `workflow.use_subagents` in `payload/core/workflow.yaml`:
+`/work` is the batch-implementation entrypoint. It runs the same daily commands (`/opsx:apply`, `/opsx:verify`) for one or more changes.
 
-- `use_subagents: yes` (default) — **delegate each change to its own SubAgent in its own git worktree**, in parallel. SubAgents do **not** merge — they apply, verify, and report.
-- `use_subagents: no` — apply the changes **sequentially** on the main checkout (one worktree per change, one change at a time: apply + verify, then the next). No SubAgents are spawned.
+**Resolve `git.work_mode` first** (`automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop).
+
+- **automated:** execution mode is governed by `workflow.use_subagents` in `workflow.yaml`:
+  - `use_subagents: yes` (default) — **delegate each change to its own SubAgent in its own git worktree**, in parallel. SubAgents do **not** merge — they apply, verify, and report.
+  - `use_subagents: no` — apply the changes **sequentially** on the main checkout (one worktree per change, one change at a time: apply + verify, then the next). No SubAgents are spawned.
+- **supervised:** apply + verify in **cwd**. Never create a worktree, never spawn SubAgents for isolation (the GUI already parallelizes). One change per session. Ignore `use_subagents`.
 
 The user inspects the consolidated report and then runs `/ship <change>` per change in sequence.
 
-This is the workflow described in https://intent-driven.dev/blog/2026/04/01/openspec-git-worktrees-opencode/. Use it when you have multiple independent changes ready to implement.
+This is the workflow described in https://intent-driven.dev/blog/2026/04/01/openspec-git-worktrees-opencode/, plus a supervised path for agent GUIs that already own worktrees.
 
 **Input**: `$ARGUMENTS` is an optional list of change names (e.g., `/work add-auth speed-up-search`). If omitted, all active changes that have completed proposal + review are considered.
 
@@ -17,10 +21,36 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
 
 1. **Pre-flight check**
 
+   - Read `git.work_mode` from `workflow.yaml`. Resolve:
+     - `automated` or deprecated alias `worktree` → `WORK_MODE=automated`
+     - `supervised` → `WORK_MODE=supervised`
+     - `feature`, `flexible`, or anything else → abort: *"git.work_mode '<value>' is no longer supported. Set `automated` (opsx owns worktrees) or `supervised` (the agent GUI owns isolation)."*
+   - If cwd is a linked worktree whose path is **not** under `git.worktree.dir` (or `SUPERSET_WORKSPACE_NAME` / `SUPERSET_ROOT_PATH` is set) **and** `WORK_MODE=automated`: refuse topology. Tell the user this looks like a GUI-managed session — set `git.work_mode: supervised` instead of creating another worktree.
+
+   **If `WORK_MODE=supervised`** — go to step 1s. Do not read `use_subagents`. Do not require the integration branch.
+
+   **If `WORK_MODE=automated`:**
    - SubAgent support (only required when parallel mode is selected): confirm the runtime supports SubAgents. If the user is on an agent that doesn't (e.g., a constrained Codex config or CI without task delegation), refuse with a clear message: *"Multi-agent worktrees need SubAgent support. Use sequential `/opsx:apply` per change instead."* This check is skipped when `workflow.use_subagents: no` (see below).
-   - Read `git.work_mode` and `git.worktree.dir` from `workflow.yaml`. If `work_mode != worktree`, refuse and tell the user to set `git.work_mode: worktree` in `workflow.yaml` first — `/work` requires worktrees (one per change, in both modes).
+   - Read `git.worktree.dir` from `workflow.yaml`.
    - Read `workflow.use_subagents` from `workflow.yaml`. Store the resolved value as `WORK_PARALLEL` (`yes` or `no`). If the key is missing, default to `yes`. If the value is anything other than `yes` or `no`, abort with a clear message: *"Invalid `workflow.use_subagents` value: '<value>'. Allowed: `yes`, `no`."*
    - Confirm the user is on the integration branch (`develop`). `/work` coordinates from `develop`; running inside a worktree would mean coordinating from the wrong view.
+
+1s. **Supervised pre-flight** (only when `WORK_MODE=supervised`)
+
+   Print the two-session reminder:
+   ```
+   supervised mode: this session is implementation.
+   planning on develop → /start
+   this GUI workspace → /work
+   merge in the GUI
+   planning on develop → /ship
+   ```
+
+   - NEVER `git worktree add`, `git worktree remove`, `git checkout -b`, `git merge`, `git branch -d`.
+   - If current branch is `main` (release): refuse.
+   - If current branch is the integration branch: refuse. *"supervised: `/work` runs inside a GUI workspace/worktree, not on `<integration_branch>`. Create a new workspace from `<integration_branch>` in VS Code Agents / Superset / Copilot, then re-run `/work` there. Do not `git checkout`."*
+   - Bind **one** change: `$ARGUMENTS` (a single name), else conversation, else the single active change in `openspec/changes/`. If `$ARGUMENTS` lists several names: refuse — *"this session is one workspace. Open one GUI workspace per change and run `/work <name>` in each."*
+   - Skip steps 3–4a/4b (no grouping, no SubAgents, no `git worktree add`). Jump to apply + verify **in cwd** (same task loop as step 4b items 2–3, without creating a worktree). Then report (step 5) with Worktree = cwd and Branch = current branch. Suggest `/ship <change>` (verify + merge-in-GUI).
 
 2. **Resolve the candidate changes**
 
@@ -249,5 +279,6 @@ Next: inspect each row, then run `/ship <change>` per change in sequence.
 - **In sequential mode, the coordinator MUST NOT spawn SubAgents** — apply + verify run in the main session.
 - **Serialise merges, not implementation.** `/work` parallelises (or serialises) the apply+verify phase; the merge phase stays sequential and human-controlled via `/ship`.
 - **If any change reports CRITICAL issues**, do not include that change in the suggested next step table's "Action" column — recommend fixing it instead. In sequential mode, the same applies and the loop also aborts before the next change.
-- **`workflow.use_subagents` is the ONLY switch for `/work`'s mode.** There is no env-var override. Projects that need to toggle it per invocation edit `workflow.yaml`.
+- **`workflow.use_subagents` is the ONLY switch for `/work`'s parallel vs sequential mode in `automated`.** There is no env-var override. It is **ignored** when `work_mode` is `supervised`.
+- **In `supervised` mode, NEVER create, remove, or merge git topology.** One change per session; the GUI owns isolation.
 - **Suggestions are advice, not actions.** `/work` prints plans and reports; the user runs `/ship` and any follow-up fix commands.

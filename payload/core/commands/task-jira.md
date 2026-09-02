@@ -17,7 +17,7 @@ Export the task `$ARGUMENTS` (a Jira key like `PROJ-123`, `all`, or a status lik
    ```
 
    - Read `git.integration_branch` from `workflow.yaml`.
-   - If the current branch is not the integration branch, refuse and tell the user to `git checkout <integration_branch>` first.
+   - If the current branch is not the integration branch, resolve `git.work_mode`. **automated:** refuse and tell the user to `git checkout <integration_branch>` first. **supervised:** refuse, NEVER `git checkout` — this session is for `/work`; open a planning session on `<integration_branch>`.
    - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout.
 
 1. Read `workflow.yaml` (`jira.project_key`, `jira.export_dir`, `jira.default_issue_type`). Resolve which tasks to export from the argument; default to all with `status: enriched`.

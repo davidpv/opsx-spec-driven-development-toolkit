@@ -11,7 +11,7 @@ metadata:
 
 Implement tasks from an OpenSpec change.
 
-> **Worktree context (default).** In worktree mode (`git.work_mode == worktree` in `workflow.yaml`), all edits happen inside `<git.worktree.dir>/<change>/` on the new `feature/<change>` branch. With `git.work_mode == feature`, edits happen on a plain feature branch in the main checkout. With `git.work_mode == flexible`, the user is asked where to implement. **Never implement on `main` (release branch) — refuse and stop.**
+> **Isolation context.** Resolve `git.work_mode` (`automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop). In `automated` mode, all edits happen inside `<git.worktree.dir>/<change>/` on the new `feature/<change>` branch. In `supervised` mode, all edits happen in cwd — never `git worktree add` / `git checkout -b`. **Never implement on `main` (release branch) — refuse and stop.**
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 

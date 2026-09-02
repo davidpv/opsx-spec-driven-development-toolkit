@@ -4,7 +4,7 @@ description: Create a semantic (conventional) commit traced to the current OpenS
 
 Create one or more semantically organized conventional commits for the staged/pending work. `$ARGUMENTS` may name the change; otherwise infer it from the current branch — `feature/<change>` or `feature/<task id>-<change>` per `workflow.yaml` (strip a leading Jira key like `PROJ-123-` before matching against `openspec/changes/`).
 
-In worktree mode (default), this command runs **inside the worktree** at `<worktree-dir>/<change>/`. The traceability footers and commit conventions are identical; only the working directory differs.
+In `automated` mode, this command runs **inside the worktree** at `<worktree-dir>/<change>/`. In `supervised` mode, it runs in cwd on whatever branch the GUI checked out. The traceability footers and commit conventions are identical; only the working directory differs. The GUI commit button is an equivalent of this command.
 
 **Steps**
 
@@ -25,12 +25,12 @@ In worktree mode (default), this command runs **inside the worktree** at `<workt
 
 **Branch policy (`git.work_mode` in `workflow.yaml`)**
 
-This is the safety net. `/opsx:apply` already enforces the worktree-or-feature gate before any edit; `/git-commit` re-checks at commit time so an out-of-band agent or a missed step cannot accidentally commit to the wrong branch.
+This is the safety net. `/opsx:apply` already enforces the isolation gate before any edit; `/git-commit` re-checks at commit time so an out-of-band agent or a missed step cannot accidentally commit to the wrong branch.
 
-- On `main`: never commit. Offer to switch to the integration branch or to the worktree for the relevant change.
-- On the integration branch (e.g. `develop`) — only allowed in narrow cases:
-  - If `work_mode: flexible`, the user is committing code directly; confirm with the user the first time in the session.
-  - Otherwise (commit happened during propose/apply/verify/archive), check that the staged changes match the expected kind: proposal/design/tasks/specs during propose, an archive commit during `/ship`, a verification record during verify. If anything else is staged, refuse.
-- On `feature/<change>` outside a worktree (the `feature` mode): commit normally.
-- Inside a worktree at `<worktree-dir>/<change>/` on `feature/<change>` (the default): commit normally. The current branch — not the directory — is the source of truth for the gate.
-- When creating a feature branch: look up the linked task (frontmatter `change:` match in `backlog/tasks/`); if found and its `id` is a real Jira key (not a `-Dnn` draft), name the branch `feature/<id>-<change>`, otherwise `feature/<change>`.
+Resolve `git.work_mode` (`automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop).
+
+- On `main`: never commit. **automated:** offer to switch to the integration branch or to the worktree. **supervised:** NEVER `git checkout`; tell the user to open the right GUI workspace.
+- On the integration branch (e.g. `develop`) — only allowed for planning artifacts: proposal/design/tasks/specs during propose, an archive commit during `/ship`, a verification record during verify, discovery/task files. If implementation code is staged, refuse (that belongs in the isolated checkout).
+- **automated**, inside `.worktrees/<change>/` on `feature/<change>`: commit normally. The current branch — not the directory — is the source of truth for the gate.
+- **supervised**, on any non-`main` branch in cwd: commit normally. Do not rename the GUI's branch. Do not require `feature/<change>`.
+- When **automated** creates a feature branch: look up the linked task (frontmatter `change:` match in `backlog/tasks/`); if found and its `id` is a real Jira key (not a `-Dnn` draft), name the branch `feature/<id>-<change>`, otherwise `feature/<change>`. **supervised:** never create or switch branches.

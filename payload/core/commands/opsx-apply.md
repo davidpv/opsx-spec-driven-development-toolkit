@@ -2,7 +2,7 @@
 description: Implement tasks from an OpenSpec change inside a git worktree (or feature branch)
 ---
 
-Implement tasks from an OpenSpec change. Operates inside a git worktree by default (one worktree per change), so multiple changes can be built in parallel without disturbing `develop` or each other.
+Implement tasks from an OpenSpec change. In `automated` mode, operates inside a git worktree (one per change). In `supervised` mode, operates in cwd — the agent GUI already isolated the session.
 
 **Input**: Optionally specify a change name (e.g., `/opsx-apply add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
@@ -30,11 +30,15 @@ Implement tasks from an OpenSpec change. Operates inside a git worktree by defau
 
    **If `state: "blocked"`**: show message, suggest using `/opsx:propose` to finish the artifacts.
 
-3. **Resolve the working branch (worktree-or-feature gate)**
+3. **Resolve the working branch (isolation gate)**
 
-   Read `git.work_mode` from `workflow.yaml`. Three cases:
+   Read `git.work_mode` from `workflow.yaml`. Resolve: `automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop and tell the user to set `automated` or `supervised`.
 
-   - **`worktree` (default)** — Create (or reuse) the worktree for this change:
+   If cwd is a linked worktree **outside** `git.worktree.dir` (or `SUPERSET_WORKSPACE_NAME` is set) and mode is still `automated`: refuse topology. Tell the user to set `git.work_mode: supervised`.
+
+   Two cases:
+
+   - **`automated`** — Create (or reuse) the worktree for this change:
      1. Compute the worktree path: `git.worktree.dir` (default `.worktrees`) joined with the change name, e.g. `.worktrees/<change>/`.
      2. Compute the worktree branch: `feature/<change>` (or `feature/<task-id>-<change>` if `backlog/tasks/*.md` has a linked task with a real Jira key, not a `-Dnn` draft).
      3. Compute the base branch: `git.worktree.base_branch` or `git.integration_branch` (default `develop`).
@@ -45,13 +49,12 @@ Implement tasks from an OpenSpec change. Operates inside a git worktree by defau
      5. Run all subsequent file edits and shell commands inside `<worktree-dir>/<change>/`. Use absolute paths or `cd` first; do NOT edit files in the main checkout.
      6. If `git worktree add` fails (e.g., the feature branch already exists from a previous attempt), refuse and tell the user to either pick a different change name, or run `git worktree remove` on the stale path first.
 
-   - **`feature`** — Plain feature branch, no worktree:
-     1. Refuse if current branch is `main` or `develop`. Ask for the Jira ID (if the change is linked to a backlog task) and create/switch to `feature/<task-id>-<change>` or `feature/<change>`.
-     2. All edits happen in the main checkout on that branch.
-
-   - **`flexible`** — Ask with **AskUserQuestion** where to implement:
-     - Feature branch (recommended)
-     - Directly on the integration branch
+   - **`supervised`** — The GUI already isolated this session. Use cwd:
+     1. NEVER `git worktree add`, `git checkout -b`, `git checkout`, `git merge`.
+     2. Refuse if current branch is `main`.
+     3. Refuse if current branch is the integration branch: *"supervised: `/opsx:apply` runs inside a GUI workspace, not on `<integration_branch>`. Create a workspace from `<integration_branch>` first."*
+     4. Bind the change from `$ARGUMENTS` / conversation / `openspec/changes/` in this tree. Do **not** require the branch to be named `feature/<change>`.
+     5. All edits happen in cwd.
 
    In all cases, **never implement on `main`**. Refuse outright and stop.
 
@@ -173,7 +176,7 @@ What would you like to do?
 - Update task checkbox immediately after completing each task
 - Pause on errors, blockers, or unclear requirements - don't guess
 - Use contextFiles from CLI output, don't assume specific file names
-- **All edits MUST happen inside the worktree** (or feature branch) — never in the main checkout for another change
+- **All edits MUST happen inside the isolated checkout** (`automated`: the opsx worktree; `supervised`: cwd) — never in the main checkout for another change
 - **Never run `git commit`.** Suggest `/git-commit` at every task boundary so the user creates the commit themselves — never edit the next task on top of an uncommitted state, but never commit on the user's behalf either.
 
 **Fluid Workflow Integration**

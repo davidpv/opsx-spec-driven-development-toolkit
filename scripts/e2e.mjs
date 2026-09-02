@@ -34,14 +34,14 @@ fs.writeFileSync(
 );
 
 console.log("\n— init —");
-run(["init", "--yes", "--targets", "opencode,claude,codex", "--project-key", "DEMO", "--language", "en", "--work-mode", "feature"]);
+run(["init", "--yes", "--targets", "opencode,claude,codex", "--project-key", "DEMO", "--language", "en", "--work-mode", "supervised"]);
 
 // shared
 assert(exists("workflow.yaml"), "workflow.yaml written");
 const wf = read("workflow.yaml");
 assert(/project_key: DEMO/.test(wf), "workflow.yaml: project_key templated");
 assert(/default_language: en/.test(wf), "workflow.yaml: language templated");
-assert(/work_mode: feature/.test(wf), "workflow.yaml: work_mode templated");
+assert(/work_mode: supervised/.test(wf), "workflow.yaml: work_mode templated");
 assert(wf.includes("#"), "workflow.yaml: comments preserved");
 assert(exists("backlog/tasks/.gitkeep") && exists("templates/task.md") && exists("openspec/config.yaml"), "backlog/, templates/, openspec/ scaffolded");
 const agentsMd = read("AGENTS.md");

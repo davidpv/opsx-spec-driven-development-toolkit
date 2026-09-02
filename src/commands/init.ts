@@ -7,6 +7,7 @@ import { readTextIfExists, sha256, writeText } from "../lib/fsutil.js";
 import { readManifest, writeManifest, type Manifest } from "../lib/manifest.js";
 import { applyManagedBlock, mergeJson } from "../lib/merge.js";
 import { loadPayload } from "../lib/payload.js";
+import { resolveWorkMode, type WorkMode } from "../lib/work-mode.js";
 
 export interface InitOptions {
   targets?: string;
@@ -99,14 +100,15 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     .filter((t): t is TargetName => (ALL_TARGETS as string[]).includes(t));
 
   if (opts.yes) {
+    const mode = parseInitWorkMode(opts.workMode, "automated");
+    if (!mode) return cancel();
     return {
       targets: flagTargets?.length ? flagTargets : ALL_TARGETS,
       projectKey: opts.projectKey ?? "PROJ",
       language: opts.language === "en" ? "en" : "es",
       mainBranch: opts.mainBranch ?? "main",
       integrationBranch: opts.integrationBranch ?? "develop",
-      workMode:
-        opts.workMode === "feature" || opts.workMode === "worktree" ? opts.workMode : "worktree",
+      workMode: mode,
     };
   }
 
@@ -146,18 +148,30 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     opts.integrationBranch ?? (await p.text({ message: "Integration branch (PR target)", initialValue: "develop" }));
   if (p.isCancel(integrationBranch)) return cancel();
 
-  const workMode =
-    opts.workMode ??
-    (await p.select({
+  let workMode: WorkMode | null;
+  if (opts.workMode != null) {
+    workMode = parseInitWorkMode(opts.workMode);
+    if (!workMode) return cancel();
+  } else {
+    const picked = await p.select({
       message: "Working mode",
       options: [
-        { value: "worktree", label: "worktree (default)", hint: "one git worktree per change; /opsx:apply creates it" },
-        { value: "feature", label: "feature", hint: "always require feature branch + PR (no worktree)" },
-        { value: "flexible", label: "flexible", hint: "feature branches recommended, direct commits allowed" },
+        {
+          value: "automated",
+          label: "automated (default)",
+          hint: "opsx creates a git worktree per change; CLI agents",
+        },
+        {
+          value: "supervised",
+          label: "supervised",
+          hint: "agent GUI already isolated this session (VS Code Agents, Superset, Copilot)",
+        },
       ],
-      initialValue: "worktree",
-    }));
-  if (p.isCancel(workMode)) return cancel();
+      initialValue: "automated",
+    });
+    if (p.isCancel(picked)) return cancel();
+    workMode = picked as WorkMode;
+  }
 
   return {
     targets,
@@ -165,9 +179,15 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     language: language === "en" ? "en" : "es",
     mainBranch: String(mainBranch),
     integrationBranch: String(integrationBranch),
-    workMode:
-      workMode === "feature" || workMode === "worktree" ? workMode : "worktree",
+    workMode,
   };
+}
+
+function parseInitWorkMode(raw: string | undefined, fallback?: WorkMode): WorkMode | null {
+  const r = resolveWorkMode(raw ?? fallback ?? "automated");
+  if (r.ok) return r.mode;
+  p.log.error(r.message);
+  return null;
 }
 
 function cancel(): null {

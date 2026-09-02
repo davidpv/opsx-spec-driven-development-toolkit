@@ -1,3 +1,4 @@
+import { workModeForTemplate } from "../lib/work-mode.js";
 import type { FileAction, InitConfig, Payload } from "./types.js";
 
 /** Stack-agnostic files every target shares: workflow.yaml, AGENTS.md, backlog/, templates/, openspec/. */
@@ -17,7 +18,7 @@ export function templateWorkflow(src: string, cfg: InitConfig): string {
   return src
     .replace(/^(\s*main_branch:)\s*\S+/m, `$1 ${cfg.mainBranch}`)
     .replace(/^(\s*integration_branch:)\s*\S+/m, `$1 ${cfg.integrationBranch}`)
-    .replace(/^(\s*work_mode:)\s*\S+/m, `$1 ${cfg.workMode}`)
+    .replace(/^(\s*work_mode:)\s*\S+/m, `$1 ${workModeForTemplate(cfg.workMode)}`)
     .replace(/^(\s*project_key:)\s*\S+/m, `$1 ${cfg.projectKey}`)
     .replace(/^(\s*default_language:)\s*\S+/m, `$1 ${cfg.language}`);
 }
