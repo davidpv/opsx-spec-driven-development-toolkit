@@ -1,36 +1,30 @@
 ---
-description: Create a semantic (conventional) commit traced to the current OpenSpec change
+description: Conventional, semantic commits from staged changes — or the full working tree if nothing is staged
 ---
 
-Create one or more semantically organized conventional commits for the staged/pending work. `$ARGUMENTS` may name the change; otherwise infer it from the current branch — `feature/<change>` or `feature/<task id>-<change>` per `workflow.yaml` (strip a leading Jira key like `PROJ-123-` before matching against `openspec/changes/`).
-
-In `automated` mode, this command runs **inside the worktree** at `<worktree-dir>/<change>/`. In `supervised` mode, it runs in cwd on whatever branch the GUI checked out. The traceability footers and commit conventions are identical; only the working directory differs. The GUI commit button is an equivalent of this command.
+Create conventional commits for the current git work. Works in any repository, on any branch. No OpenSpec project, `workflow.yaml`, or branch layout required. `$ARGUMENTS` is an optional hint (intent, scope, or a draft subject) — not a message to commit verbatim.
 
 **Steps**
 
-1. Read `workflow.yaml` (`git.commit_convention`, `git.commit_scope_from`, `git.branch_prefix`, `git.worktree.dir`). Run `git status` and `git diff` to see what changed. If nothing changed, say so and stop.
+1. **See the work.** Run `git status --short`, `git diff --cached`, and `git diff`. If nothing changed, say so and stop.
 
-2. Identify the OpenSpec change and which `tasks.md` task(s) this work completes. If the diff mixes unrelated concerns, propose splitting into multiple commits and stage selectively (`git add -p` by file groups).
+2. **Choose the set.**
+   - Staged changes exist → commit **only** the index. Leave unstaged and untracked files alone.
+   - Nothing staged → take the full current changes (modifications, deletions, and untracked files). Respect `.gitignore`. Do not stage secrets (`.env`, keys, credentials).
 
-3. Build the messages:
-   - **type**: feat | fix | refactor | test | docs | chore — from the nature of the diff, not the task title.
-   - **scope**: the change name (or a tighter module name if obvious).
-   - **subject**: imperative, ≤72 chars.
-   - **body**: what & why, wrapped at 72.
-   - **footer**: `Change: <change-name>` and `Task: <tasks.md step number(s)>`; add `Jira: <task id>` (e.g. `PROJ-123`) if the change is linked to a backlog task. `BREAKING CHANGE:` when applicable.
+3. **Split semantically.** One concern per commit. If the set mixes unrelated changes, split it and stage each group (`git add <paths>`; `git add -p` only when one file mixes concerns). The subject describes the behavior change, not a file list.
 
-4. Show the messages, commit on approval, then tick the completed task(s) in `tasks.md` and amend or include that in the commit.
+4. **Write a single-line Conventional Commit** ([spec](https://www.conventionalcommits.org)). No body. No footer.
 
-5. Suggest the next step: if `tasks.md` has unchecked steps, `/opsx:apply` to continue; if all are done, `/opsx:verify` then `/ship` (single-change mode) or `/ship <change>` and inspect reports (multi-agent mode).
+   ```
+   <type>[optional scope][!]: <subject>
+   ```
 
-**Branch policy (`git.work_mode` in `workflow.yaml`)**
+   - **type** from the diff: `feat` `fix` `refactor` `perf` `test` `docs` `style` `build` `ci` `chore` `revert`
+   - **scope**: optional module or area
+   - **subject**: imperative, ≤72 chars, no trailing period
+   - **breaking**: `!` after the type/scope. Do not add a `BREAKING CHANGE:` footer.
 
-This is the safety net. `/opsx:apply` already enforces the isolation gate before any edit; `/git-commit` re-checks at commit time so an out-of-band agent or a missed step cannot accidentally commit to the wrong branch.
+5. **Show, then commit on approval.** Print each subject with its file list. On approval, commit in order with `git commit -m "<message>"`.
 
-Resolve `git.work_mode` (`automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop).
-
-- On `main`: never commit. **automated:** offer to switch to the integration branch or to the worktree. **supervised:** NEVER `git checkout`; tell the user to open the right GUI workspace.
-- On the integration branch (e.g. `develop`) — only allowed for planning artifacts: proposal/design/tasks/specs during propose, an archive commit during `/ship`, a verification record during verify, discovery/task files. If implementation code is staged, refuse (that belongs in the isolated checkout).
-- **automated**, inside `.worktrees/<change>/` on `feature/<change>`: commit normally. The current branch — not the directory — is the source of truth for the gate.
-- **supervised**, on any non-`main` branch in cwd: commit normally. Do not rename the GUI's branch. Do not require `feature/<change>`.
-- When **automated** creates a feature branch: look up the linked task (frontmatter `change:` match in `backlog/tasks/`); if found and its `id` is a real Jira key (not a `-Dnn` draft), name the branch `feature/<id>-<change>`, otherwise `feature/<change>`. **supervised:** never create or switch branches.
+   Never `--amend`, `--no-verify`, or force-push unless the user asks. Afterwards print each hash and subject. If anything is still unstaged, list it and stop.

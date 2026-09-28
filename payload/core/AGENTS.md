@@ -133,7 +133,7 @@ planning session on develop  →  /ship   (archive + close)
 - Task frontmatter (`status`, `change`, `id`) is the pipeline state of a backlog task. Commands keep it updated; don't bypass it.
 - Never commit directly to `main` (release branch only).
 - Feature branch naming (**automated** only): `feature/<task id>-<change>` when the change is linked to a backlog task with a real Jira key (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise. When inferring the change from a branch name, strip the leading Jira key. **supervised:** do not rename the GUI's branch; bind the change by argument / conversation / `openspec/changes/`.
-- **Branch gate**: no implementation work starts until the working checkout is resolved (opsx worktree created, or cwd already isolated in supervised mode). This applies to `/opsx:apply` and to any ad-hoc code edit. `/git-commit` re-checks at commit time as a safety net.
+- **Branch gate**: no implementation work starts until the working checkout is resolved (opsx worktree created, or cwd already isolated in supervised mode). This applies to `/opsx:apply` and to any ad-hoc code edit — not to `/git-commit`, which may run in any git repository.
 - All artifacts are written in the language the user configures in `workflow.yaml` (`content.default_language`).
 
 ## Repository layout
