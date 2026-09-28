@@ -68,3 +68,5 @@ worktrees:
   # older opsx projects that read this block.
   base_branch: develop
   dir: .worktrees
+
+__OPSX_MODELS_BLOCK__

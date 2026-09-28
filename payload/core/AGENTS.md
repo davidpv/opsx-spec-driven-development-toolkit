@@ -129,7 +129,8 @@ planning session on develop  →  /ship   (archive + close)
 - **Never run `git commit`.** The user always commits. After any file modification — code, specs, artifacts, config, anything — finish by suggesting `/git-commit` so the user can review the message and finalize the commit. Do not stage with `git add` and commit in the same turn; let `/git-commit` do both under user control.
 - Keep changes small: one concern per change, one isolated checkout per change.
 - Validate before archiving: `openspec validate <change> --strict`. `/ship` runs this as part of its verify gate.
-- `workflow.yaml` at the repo root defines branches, `work_mode`, commit convention, Jira/export settings, and worktree settings. Pipeline commands read it; never hardcode branch names or platforms.
+- `workflow.yaml` at the repo root defines branches, `work_mode`, commit convention, Jira/export settings, worktree settings, and model routing. Pipeline commands read it; never hardcode branch names or platforms.
+- When `models.provider` is not `none`, command `model:` pins come from `models.phases`. Do not switch models yourself. Edit `workflow.yaml`, then the user runs `opsx update`.
 - Task frontmatter (`status`, `change`, `id`) is the pipeline state of a backlog task. Commands keep it updated; don't bypass it.
 - Never commit directly to `main` (release branch only).
 - Feature branch naming (**automated** only): `feature/<task id>-<change>` when the change is linked to a backlog task with a real Jira key (e.g. `feature/PROJ-123-speed-up-search`), `feature/<change>` otherwise. When inferring the change from a branch name, strip the leading Jira key. **supervised:** do not rename the GUI's branch; bind the change by argument / conversation / `openspec/changes/`.
@@ -145,7 +146,7 @@ planning session on develop  →  /ship   (archive + close)
 | `openspec/changes/` | In-flight changes (proposal, specs, design, tasks) |
 | `openspec/changes/archive/` | Completed changes, audit history |
 | `templates/` | Discovery, task, and PR description templates |
-| `workflow.yaml` | Tool-agnostic pipeline config (branches, work_mode, commits, Jira, worktrees) |
+| `workflow.yaml` | Tool-agnostic pipeline config (branches, work_mode, commits, Jira, worktrees, model routing) |
 | `.worktrees/` | Per-change git worktrees in automated mode (created by `/opsx:apply`, removed by `/ship`) |
 | `.opencode/` | opencode agents, commands, and OpenSpec skills |
 
