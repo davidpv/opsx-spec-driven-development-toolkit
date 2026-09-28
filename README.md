@@ -157,7 +157,7 @@ The three wrappers above are all you need day to day. The primitives they call:
 | `/opsx:propose <name>` | Create a change (proposal, delta specs, design, tasks) on `develop` |
 | `/review-change <name>` | Spec-reviewer audit + `openspec validate --strict` |
 | `/opsx:apply <name>` | Implement tasks (`automated`: create the worktree; `supervised`: use cwd) |
-| `/git-commit` | Conventional commit traced to change/step/Jira task — **the user-only commit tool; LLM never auto-commits** |
+| `/git-commit` | Conventional, semantic commits from staged work (or the full diff if nothing is staged). Works in any git repo. User-only — the LLM never auto-commits |
 | `/opsx:verify <name>` | Verify implementation matches artifacts (required before `/ship`) |
 | `/opsx:sync` | Sync specs with reality when they drift |
 | `/opsx:archive <change>` | Sync delta specs into `openspec/specs/` after merge |
