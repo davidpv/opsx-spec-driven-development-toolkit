@@ -12,7 +12,7 @@ The principle: **Spec → Plan → Code.** Code is the last artifact produced, n
 npx @davidpv/opsx init
 ```
 
-Needs only **Node.js >= 18** and a git repo. `init` walks you through picking your agent (opencode / Claude Code / Codex), branches, Jira key, language, and working mode, then writes everything in place.
+Needs only **Node.js >= 18** and a git repo. `init` walks you through picking your agent (opencode / Claude Code / Codex), branches, Jira key, language, working mode, and model provider (Grok, Claude, OpenAI, or none), then writes everything in place. The chosen catalog is written to `workflow.yaml` `models.phases` and pinned on OpenCode commands. Edit those ids and run `opsx update` to re-pin. `--yes` leaves the provider as `none`.
 
 ## The model: three commands, one principle
 
@@ -90,7 +90,7 @@ Propose, archive, and `/task-*` always run on the integration branch. OpenSpec n
 ## Quick start
 
 ```bash
-npx @davidpv/opsx init      # pick targets, configure branches, Jira key, language, working mode
+npx @davidpv/opsx init      # pick targets, branches, Jira key, language, working mode, model provider
 npx @davidpv/opsx doctor    # verify required tooling (openspec CLI, agent CLIs)
 ```
 
@@ -170,7 +170,7 @@ The three wrappers above are all you need day to day. The primitives they call:
 ```
 .
 ├── AGENTS.md          # Rules every agent must follow
-├── workflow.yaml      # Pipeline config: branches, work_mode, commits, Jira
+├── workflow.yaml      # Pipeline config: branches, work_mode, commits, Jira, model routing
 ├── templates/         # discovery.md, task.md, pr-description.md
 ├── backlog/           # discovery/, tasks/ (Jira IDs), exports/ (jira + pr)
 ├── .worktrees/        # Per-change git worktrees in automated mode (gitignored)

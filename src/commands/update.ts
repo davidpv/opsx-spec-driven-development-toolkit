@@ -5,6 +5,13 @@ import { renderAll } from "../adapters/index.js";
 import { readTextIfExists, sha256, writeText } from "../lib/fsutil.js";
 import { readManifest, writeManifest } from "../lib/manifest.js";
 import { applyManagedBlock, extractManagedBlock, summariseBlockDiff } from "../lib/merge.js";
+import {
+  applyInstalledPins,
+  ensureModelsBlock,
+  parseProvider,
+  withoutModelLine,
+  type ModelProvider,
+} from "../lib/models.js";
 import { loadPayload } from "../lib/payload.js";
 import { migrationTip } from "../lib/work-mode.js";
 
@@ -44,6 +51,8 @@ export async function updateCommand(opts: UpdateOptions, packageVersion: string)
     process.exitCode = 1;
     return;
   }
+
+  if (!(await ensureProvider(manifest.config, opts))) return;
 
   const payload = loadPayload();
   const actions = renderAll(payload, manifest.config);
@@ -177,6 +186,23 @@ export async function updateCommand(opts: UpdateOptions, packageVersion: string)
     }
   }
 
+  const wfAbs = path.join(cwd, "workflow.yaml");
+  const wfCurrent = readTextIfExists(wfAbs);
+  if (wfCurrent !== null) {
+    const withModels = ensureModelsBlock(wfCurrent, manifest.config.provider ?? "none");
+    if (withModels !== wfCurrent) writeText(wfAbs, withModels);
+  }
+  const pinned = applyInstalledPins(cwd);
+  const actionByPath = new Map(actions.map((a) => [a.path, a]));
+  for (const rel of pinned) {
+    const action = actionByPath.get(rel);
+    const current = readTextIfExists(path.join(cwd, rel));
+    if (!action || current === null) continue;
+    if (withoutModelLine(current) === withoutModelLine(action.content)) {
+      manifest.files[rel] = { hash: sha256(current), strategy: action.strategy };
+    }
+  }
+
   manifest.packageVersion = packageVersion;
   writeManifest(cwd, manifest);
 
@@ -194,4 +220,31 @@ export async function updateCommand(opts: UpdateOptions, packageVersion: string)
   if (tip) p.log.info(tip);
 
   p.outro("Done.");
+}
+
+async function ensureProvider(cfg: { provider?: ModelProvider }, opts: UpdateOptions): Promise<boolean> {
+  if (cfg.provider) return true;
+  const nonInteractive = opts.nonInteractive || opts.force || Boolean(process.env.CI);
+  if (nonInteractive) {
+    cfg.provider = "none";
+    return true;
+  }
+  const picked = await p.select({
+    message: "Which model provider should phase routing use?",
+    options: [
+      { value: "grok", label: "Grok (xAI)", hint: "frontier grok-4.7, mid grok-4.3" },
+      { value: "claude", label: "Claude", hint: "frontier Opus 5.5, mid Sonnet 5.5, routine Haiku 4.5" },
+      { value: "openai", label: "OpenAI", hint: "frontier GPT-6 Astra, mid Sol, routine Luna" },
+      { value: "none", label: "none", hint: "keep the session model" },
+    ],
+    initialValue: "none",
+  });
+  if (p.isCancel(picked)) {
+    p.cancel("Cancelled.");
+    return false;
+  }
+  const provider = parseProvider(String(picked));
+  if (!provider) return false;
+  cfg.provider = provider;
+  return true;
 }

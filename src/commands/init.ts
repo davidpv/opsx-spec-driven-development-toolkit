@@ -7,6 +7,7 @@ import { readTextIfExists, sha256, writeText } from "../lib/fsutil.js";
 import { readManifest, writeManifest, type Manifest } from "../lib/manifest.js";
 import { applyManagedBlock, mergeJson } from "../lib/merge.js";
 import { loadPayload } from "../lib/payload.js";
+import { applyInstalledPins, parseProvider, providerError, type ModelProvider } from "../lib/models.js";
 import { resolveWorkMode, type WorkMode } from "../lib/work-mode.js";
 
 export interface InitOptions {
@@ -16,6 +17,7 @@ export interface InitOptions {
   mainBranch?: string;
   integrationBranch?: string;
   workMode?: string;
+  provider?: string;
   yes?: boolean;
   force?: boolean;
 }
@@ -75,12 +77,28 @@ export async function initCommand(opts: InitOptions, packageVersion: string): Pr
     written.push(a.path);
   }
 
+  for (const rel of applyInstalledPins(cwd)) {
+    const current = readTextIfExists(path.join(cwd, rel));
+    if (current === null) continue;
+    manifestFiles[rel] = { hash: sha256(current), strategy: manifestFiles[rel]?.strategy ?? "merge-json" };
+  }
+
   writeManifest(cwd, { manifestVersion: 1, packageVersion, config: cfg, files: manifestFiles });
 
   p.log.success(`${written.length} files written for targets: ${cfg.targets.join(", ")}`);
   if (merged.length) p.log.info(`Merged with existing files (yours won on conflicts):\n  ${merged.join("\n  ")}`);
   if (skipped.length) p.log.warn(`Skipped (already exist and differ — re-run with --force to overwrite):\n  ${skipped.join("\n  ")}`);
   if (notes.size) p.log.info(`Adaptations:\n  ${[...notes].join("\n  ")}`);
+  if (cfg.provider && cfg.provider !== "none") {
+    const extra = [
+      "Edit models.phases in workflow.yaml, then run `opsx update`, to change a pin.",
+      cfg.provider !== "claude" && cfg.targets.includes("claude")
+        ? "Claude Code commands were not pinned (only the Claude catalog applies there)."
+        : null,
+      cfg.targets.includes("codex") ? "Codex skills are not model-pinned; workflow.yaml is the recommendation." : null,
+    ].filter(Boolean);
+    p.note(extra.join("\n"), `Model routing: ${cfg.provider}`);
+  }
 
   const next = [
     "npm install -g @fission-ai/openspec   # required CLI",
@@ -99,6 +117,12 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     .map((t) => t.trim())
     .filter((t): t is TargetName => (ALL_TARGETS as string[]).includes(t));
 
+  const flaggedProvider = opts.provider != null ? parseProvider(opts.provider) : undefined;
+  if (opts.provider != null && !flaggedProvider) {
+    p.log.error(providerError(opts.provider));
+    return cancel();
+  }
+
   if (opts.yes) {
     const mode = parseInitWorkMode(opts.workMode, "automated");
     if (!mode) return cancel();
@@ -109,6 +133,7 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
       mainBranch: opts.mainBranch ?? "main",
       integrationBranch: opts.integrationBranch ?? "develop",
       workMode: mode,
+      provider: flaggedProvider ?? "none",
     };
   }
 
@@ -173,6 +198,24 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     workMode = picked as WorkMode;
   }
 
+  let provider: ModelProvider;
+  if (flaggedProvider) {
+    provider = flaggedProvider;
+  } else {
+    const picked = await p.select({
+      message: "Which model provider should phase routing use?",
+      options: [
+        { value: "grok", label: "Grok (xAI)", hint: "frontier grok-4.7, mid grok-4.3" },
+        { value: "claude", label: "Claude", hint: "frontier Opus 5.5, mid Sonnet 5.5, routine Haiku 4.5" },
+        { value: "openai", label: "OpenAI", hint: "frontier GPT-6 Astra, mid Sol, routine Luna" },
+        { value: "none", label: "none", hint: "keep the session model" },
+      ],
+      initialValue: "none",
+    });
+    if (p.isCancel(picked)) return cancel();
+    provider = picked as ModelProvider;
+  }
+
   return {
     targets,
     projectKey: String(projectKey),
@@ -180,6 +223,7 @@ async function resolveConfig(opts: InitOptions): Promise<InitConfig | null> {
     mainBranch: String(mainBranch),
     integrationBranch: String(integrationBranch),
     workMode,
+    provider,
   };
 }
 

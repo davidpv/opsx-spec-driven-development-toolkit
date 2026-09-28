@@ -1,4 +1,5 @@
 import { parseDoc, stringifyDoc } from "../lib/frontmatter.js";
+import { AGENT_PHASE, COMMAND_PHASE, resolvePhaseModels } from "../lib/models.js";
 import type { Adapter, FileAction } from "./types.js";
 
 /**
@@ -8,7 +9,8 @@ import type { Adapter, FileAction } from "./types.js";
  * - agents   → .claude/agents/ (subagent frontmatter; read-only tool set)
  * - CLAUDE.md imports the shared AGENTS.md
  */
-export const claude: Adapter = (p) => {
+export const claude: Adapter = (p, cfg) => {
+  const phases = cfg.provider === "claude" ? resolvePhaseModels("claude") : null;
   const actions: FileAction[] = [];
 
   for (const c of p.commands) {
@@ -21,7 +23,9 @@ export const claude: Adapter = (p) => {
         body;
       note = `command ${c.rel}: 'agent: ${data.agent}' mapped to an explicit subagent delegation line`;
     }
+    const phase = COMMAND_PHASE[c.rel];
     const fm: Record<string, unknown> = { description: data.description };
+    if (phase && phases) fm.model = phases[phase].replace(/^anthropic\//, "");
     actions.push({
       path: `.claude/commands/${c.rel}`,
       content: stringifyDoc(fm, newBody),
@@ -37,11 +41,13 @@ export const claude: Adapter = (p) => {
   for (const a of p.agents) {
     const { data, body } = parseDoc(a.content);
     const name = a.rel.replace(/\.md$/, "");
+    const phase = AGENT_PHASE[a.rel];
     const fm: Record<string, unknown> = {
       name,
       description: data.description,
       // Source agents are strictly read-only (write/edit disabled); map to a read-only tool set.
       tools: "Read, Grep, Glob, Bash",
+      ...(phase && phases ? { model: phases[phase].replace(/^anthropic\//, "") } : {}),
     };
     actions.push({
       path: `.claude/agents/${a.rel}`,

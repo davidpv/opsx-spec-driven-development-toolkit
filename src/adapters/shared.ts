@@ -1,3 +1,4 @@
+import { renderModelsSection } from "../lib/models.js";
 import { workModeForTemplate } from "../lib/work-mode.js";
 import type { FileAction, InitConfig, Payload } from "./types.js";
 
@@ -20,5 +21,6 @@ export function templateWorkflow(src: string, cfg: InitConfig): string {
     .replace(/^(\s*integration_branch:)\s*\S+/m, `$1 ${cfg.integrationBranch}`)
     .replace(/^(\s*work_mode:)\s*\S+/m, `$1 ${workModeForTemplate(cfg.workMode)}`)
     .replace(/^(\s*project_key:)\s*\S+/m, `$1 ${cfg.projectKey}`)
-    .replace(/^(\s*default_language:)\s*\S+/m, `$1 ${cfg.language}`);
+    .replace(/^(\s*default_language:)\s*\S+/m, `$1 ${cfg.language}`)
+    .replace("__OPSX_MODELS_BLOCK__", renderModelsSection(cfg.provider ?? "none"));
 }

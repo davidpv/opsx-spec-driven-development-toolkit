@@ -19,6 +19,11 @@ export interface InitConfig {
   integrationBranch: string;
   /** New projects: automated | supervised. Manifests may still carry legacy values. */
   workMode: "automated" | "supervised" | "worktree" | "feature" | "flexible";
+  /**
+   * Model catalog used to pin phase commands. Missing on manifests written
+   * before model routing — treat as unset, not as `none`.
+   */
+  provider?: "grok" | "claude" | "openai" | "none";
 }
 
 export interface PayloadFile {
