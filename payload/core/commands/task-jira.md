@@ -25,6 +25,7 @@ Export the task `$ARGUMENTS` (a Jira key like `PROJ-123`, `all`, or a status lik
 2. For each task render `backlog/exports/jira/<id>.md` in **Jira wiki markup** (not GitHub markdown):
 
    - `h2.` headings, `*bold*`, `{code}...{code}` blocks for Gherkin (only {code} blocks, there is a bug in Jira not recognizing {code:gherkin} markdown, it only recognizes {code} blocks), `||header||` tables, `# / *` lists.
+   - Do not use `{code}` for inline code (use `{{monospace}}` instead). `{code}` is only for the acceptance criteria section.
    - Structure: Summary line (`<id> — <title>`), issue type (`jira.default_issue_type` unless the task says otherwise), priority, `h2. Goal`, `h2. Acceptance criteria` with each scenario in a `{code}` block, `h2. Notes`, and a final line `Source: backlog/tasks/<file>` for traceability.
    - Do not include the YAML frontmatter.
 
