@@ -50,7 +50,7 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    - If current branch is `main` (release): refuse.
    - If current branch is the integration branch: refuse. *"supervised: `/work` runs inside a GUI workspace/worktree, not on `<integration_branch>`. Create a new workspace from `<integration_branch>` in VS Code Agents / Superset / Copilot, then re-run `/work` there. Do not `git checkout`."*
    - Bind **one** change: `$ARGUMENTS` (a single name), else conversation, else the single active change in `openspec/changes/`. If `$ARGUMENTS` lists several names: refuse — *"this session is one workspace. Open one GUI workspace per change and run `/work <name>` in each."*
-   - Skip steps 3–4a/4b (no grouping, no SubAgents, no `git worktree add`). Jump to apply + verify **in cwd** (same task loop as step 4b items 2–3, without creating a worktree). Then report (step 5) with Worktree = cwd and Branch = current branch. Suggest `/ship <change>` (verify + merge-in-GUI).
+   - Skip steps 3–4a (no grouping, no SubAgents, no `git worktree add`). Apply + verify **in cwd** using the task loop in step 4b items 2–3: every pending task, then verify, with no question and no commit between tasks. Then the one commit confirmation in step 4b item 3b. Then report (step 5) with Worktree = cwd and Branch = current branch. Suggest `/ship <change>` (verify + merge-in-GUI).
 
 2. **Resolve the candidate changes**
 
@@ -131,27 +131,28 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    ## Apply
    5. Run `openspec instructions apply --change "<change>" --json`. The CLI gives you `contextFiles` (the artifact paths) and the task list.
    6. Read every `contextFiles` file.
-   7. For each unchecked task in `tasks.md`:
+   7. For each unchecked task in `tasks.md`, in order, without stopping:
       - Make the code change inside this worktree only. Never touch the main checkout.
       - Mark `- [ ]` → `- [x]` immediately after each task.
-      - **Never run `git commit` yourself.** After completing each task, suggest `/git-commit` to the user — the user runs the command to review the message and finalize the commit. Footers must include `Change: <change>` and `Task: <tasks.md step number>`.
-      - If running unattended (no user present to run `/git-commit`), stage the changes with `git add <paths>` and continue; do not commit. The user will run `/git-commit` to clean up the staged but uncommitted work when they next take over.
-   8. Pause and report if a task is genuinely ambiguous — do NOT invent answers.
+      - Continue to the next task. Do not suggest `/git-commit`. Do not ask. Do not commit. The user is not in this session.
+   8. Pause and report only if a task is genuinely ambiguous — do NOT invent answers. A pause is not a commit boundary.
 
    ## Verify
-   9. Run `/opsx:verify <change>` inside the worktree. This generates a CRITICAL/WARNING/SUGGESTION report and writes it to `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md`. Stage the record (do NOT commit — the user runs `/git-commit`).
-   10. CRITICAL issues must be fixed before you report back — iterate on tasks until verify is clean or only WARNING/SUGGESTION remain.
+   9. Run the `/opsx:verify <change>` logic inside the worktree. Write `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md`, stage the record, and return. Do not ask for a commit. Do not wait.
+   10. CRITICAL issues must be fixed before you report back — iterate on tasks until verify is clean or only WARNING/SUGGESTION remain. Still no commit prompt.
 
    ## Report
-   11. Report back to the coordinator:
+   11. Stage the whole batch (implementation files, tasks file, `.openspec/`). Do not commit. Report back to the coordinator:
        - Worktree path + branch
        - Number of tasks completed
        - Final verification assessment (CRITICAL / WARNING / SUGGESTION counts)
+       - That the batch is staged and the coordinator must ask the user once before committing
        - Suggested `/ship <change>` command
 
    ## DO NOT
    - DO NOT run `/ship`, `/opsx:archive`, or any merge command.
-   - **DO NOT run `git commit`.** Only stage changes with `git add`; the user runs `/git-commit` to finalize.
+   - DO NOT run `git commit`.
+   - DO NOT stop after a task to wait for `/git-commit`.
    - DO NOT touch the main checkout.
    - DO NOT switch branches — stay on `feature/<change>` in your worktree.
    - DO NOT delete the worktree when you finish.
@@ -170,13 +171,20 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
       ```
       If the worktree already exists, just `cd` into it. If the branch `feature/<change>` already exists on the integration branch, `git worktree add` will fail — abort with a clear message and let the user decide (typically: `git worktree remove` and re-run, or skip the change).
 
-   2. **Apply.** Run `openspec instructions apply --change "<change>" --json` to read the task list and context files. For each unchecked task in `tasks.md`:
+   2. **Apply.** Run `openspec instructions apply --change "<change>" --json` to read the task list and context files. For each unchecked task in `tasks.md`, in order, in this same turn:
       - Make the code change inside this worktree only. Never touch the main checkout.
       - Mark `- [ ]` → `- [x]` immediately after each task.
-      - **Never run `git commit` yourself.** After completing each task, suggest `/git-commit` to the user — the user runs the command to review the message and finalize the commit. Footers must include `Change: <change>` and `Task: <tasks.md step number>`.
-      - If running unattended (no user present to run `/git-commit`), stage the changes with `git add <paths>` and continue; do not commit.
+      - Continue to the next unchecked task. Do not suggest `/git-commit`, do not ask, and do not wait. Uncommitted work across tasks is expected.
 
-   3. **Verify.** Run `/opsx:verify <change>` inside the worktree. CRITICAL issues MUST be fixed (iterate on tasks) before moving on; WARNING/SUGGESTION are tolerable but reported.
+   3. **Verify.** Run the `/opsx:verify <change>` logic inside the worktree. It writes and stages the record and returns — it must not ask for a commit and must not wait. CRITICAL issues MUST be fixed (iterate on tasks, still without a commit prompt) before moving on; WARNING/SUGGESTION are tolerable but reported.
+
+   3b. **One commit confirmation for this change.** After verify:
+      - Stage the batch in this worktree: implementation files, the tasks file, and `.openspec/`. Do not stage secrets.
+      - Show one conventional commit — `type(<change>): subject` — and the file list. One commit for the whole change. Do not split per task. Do not add a footer. Do not delegate to `/git-commit`.
+      - Ask once: commit this batch now?
+      - On yes: `git commit -m "<message>"` in this worktree. No `--amend`, no `--no-verify`.
+      - On no: leave it staged. Do not block the rest of `/work`.
+      - Never commit without that yes. Never commit between tasks.
 
    4. **Gate.** If verify reports any CRITICAL issue that wasn't fixed, or if the user aborted apply mid-task, abort the sequential loop immediately:
       - Do **not** start the next change.
@@ -188,7 +196,7 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    DO NOT, in sequential mode:
    - Spawn any SubAgent (the `openspec` agent or otherwise).
    - Run `/ship`, `/opsx:archive`, or any merge command. Merging is still the user's job, per change, via `/ship <change>`.
-   - Run `git commit` on the user's behalf. Stage with `git add` only; the user runs `/git-commit`.
+   - Commit between tasks, or commit without the single yes in step 3b. A declined commit stays staged; it does not abort the loop.
    - Delete a worktree between changes.
 
 5. **Aggregate reports**
@@ -225,6 +233,8 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    In sequential mode the Action column for pending changes is always "not started — loop aborted at `<failed-change>`". In all cases, no branch is merged by `/work`; merging stays with `/ship`.
 
 6. **What the user does next**
+
+   Before that suggestion, if any change still has an uncommitted batch (typical for parallel SubAgents, which stage and do not ask), ask **once** for the whole `/work` run: commit the finished batches now? On yes, commit each finished change in its own worktree — one conventional commit per change, not per task. On no, leave them staged. Supervised and sequential already asked in step 3b; do not ask a second time for a change that was committed or explicitly declined.
 
    The coordinator suggests the user:
    - For each change with a clean verify, run `/ship <change>` to merge + archive + close.
@@ -281,4 +291,5 @@ Next: inspect each row, then run `/ship <change>` per change in sequence.
 - **If any change reports CRITICAL issues**, do not include that change in the suggested next step table's "Action" column — recommend fixing it instead. In sequential mode, the same applies and the loop also aborts before the next change.
 - **`workflow.use_subagents` is the ONLY switch for `/work`'s parallel vs sequential mode in `automated`.** There is no env-var override. It is **ignored** when `work_mode` is `supervised`.
 - **In `supervised` mode, NEVER create, remove, or merge git topology.** One change per session; the GUI owns isolation.
+- **The task loop does not stop for a commit.** No per-task `/git-commit`. One confirmation after verify, for the whole batch of that change. SubAgents stage and return; they never ask and never commit.
 - **Suggestions are advice, not actions.** `/work` prints plans and reports; the user runs `/ship` and any follow-up fix commands.

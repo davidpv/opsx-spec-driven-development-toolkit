@@ -71,26 +71,42 @@ Implement tasks from an OpenSpec change.
 
 6. **Implement tasks (loop until done or blocked)**
 
-   For each pending task:
+   For each pending task, in order, in this same turn:
    - Show which task is being worked on
    - Make the code changes required
    - Keep changes minimal and focused
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - Continue to next task
+   - Continue to the next task immediately
 
-   **Pause if:**
+   Do **not** suggest `/git-commit`, do **not** ask, and do **not** wait for a commit between tasks. Uncommitted work across tasks is expected.
+
+   **Pause only if:**
    - Task is unclear → ask for clarification
    - Implementation reveals a design issue → suggest updating artifacts
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **On completion or pause, show status**
+   A pause is not a commit boundary. Do not ask to commit a partial batch.
+
+7. **One commit confirmation — only when the user invoked apply directly**
+
+   If `/work` is driving this loop, skip this step and return. `/work` asks once after verify.
+
+   If every pending task is done:
+   - Stage the implementation files and the updated tasks file. Do not stage secrets.
+   - Show one conventional commit — `type(<change>): subject` — and the file list. One commit for the whole batch. Do not split per task.
+   - Ask once: commit this batch now?
+   - On yes: `git commit -m "<message>"`. No `--amend`, no `--no-verify`.
+   - On no: leave the index staged.
+   - Never commit without that yes. Do not hand this batch to `/git-commit`.
+
+8. **On completion or pause, show status**
 
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done: suggest archive
-   - If paused: explain why and wait for guidance
+   - If all done: the commit confirmation in step 7 already happened (or was skipped because `/work` is the caller). Then suggest archive.
+   - If paused: explain why and wait for guidance. Do not ask to commit.
 
 **Output During Implementation**
 
@@ -120,7 +136,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete! Ready to archive this change.
+All tasks complete. One commit confirmation for this batch (skipped when `/work` is the caller). Then archive.
 ```
 
 **Output On Pause (Issue Encountered)**
@@ -144,7 +160,7 @@ What would you like to do?
 ```
 
 **Guardrails**
-- Keep going through tasks until done or blocked
+- Keep going through tasks until done or blocked. Do not stop between tasks for a commit. Ask once at the end (step 7), unless `/work` is the caller.
 - Always read context files before starting (from the apply instructions output)
 - If task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates

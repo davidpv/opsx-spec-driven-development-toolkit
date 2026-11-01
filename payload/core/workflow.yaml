@@ -10,8 +10,9 @@ git:
   # (e.g. feature/PROJ-123-speed-up-search); otherwise <prefix><change-name>.
   # Commands parse both forms when inferring the change from the branch name.
   # Working mode — who owns git isolation. Commits stay user-driven in BOTH
-  # modes (/git-commit or the GUI commit button). "Automated" means isolation
-  # is automated, not that the LLM auto-commits.
+  # modes. /work and /opsx:apply run the task loop without asking, then ask
+  # once at the end of the batch. Other commands suggest /git-commit and wait.
+  # "Automated" means isolation is automated, not that the LLM auto-commits.
   #   automated  → opsx creates a git worktree per change at .worktrees/ on a
   #                fresh feature/<change> branch off integration_branch.
   #                Apply + verify run inside the worktree; /ship merges back.

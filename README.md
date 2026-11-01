@@ -124,10 +124,10 @@ For non-trivial initiatives, `/start` will chain the backlog steps (requirements
 - **Verify before merge.** `/ship` refuses to merge (or to tell the GUI to merge) unless a clean verify report exists for the current state of the branch.
 - **Merge, then archive.** Code lands on `develop` first, then delta specs sync into `openspec/specs/`. In `automated`, `/ship` does both. In `supervised`, the GUI merges; `/ship` on `develop` archives.
 - **`main` is release-only.** Proposals land on the integration branch (`develop` by default). Isolation is either an opsx worktree (`automated`) or a GUI worktree (`supervised`). Configure this with `git.work_mode` in `workflow.yaml`.
-- **The LLM never auto-commits.** All commits are user-driven. Every command ends by suggesting `/git-commit` (or the GUI commit button in `supervised`). After modifying any file — code, specs, artifacts, config — the LLM stages and suggests `/git-commit`; the user reviews the message and finalizes the commit.
+- **The LLM does not commit without a yes.** `/work` and `/opsx:apply` run every pending task without stopping, then ask once at the end of that batch and commit only if you confirm. Other commands suggest `/git-commit` and wait. Nothing auto-commits.
 - **Spec wrong or drifted?** Never diverge silently — run `/opsx:sync` to fix the spec first, then resume.
 
-Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → user commits via `/git-commit` → merge → archive**. Task IDs ARE Jira keys (`PROJ-123`; `PROJ-Dnn` for drafts).
+Traceability chain: **Discovery → Task (Jira) → Change → tasks.md steps → one confirmed commit for the batch → merge → archive**. Task IDs ARE Jira keys (`PROJ-123`; `PROJ-Dnn` for drafts).
 
 ## Commands
 
