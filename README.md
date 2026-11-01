@@ -1,10 +1,22 @@
 # opsx — Spec-Driven Development Toolkit
 
-[![npm version](https://img.shields.io/npm/v/@davidpv/opsx.svg)](https://www.npmjs.com/package/@davidpv/opsx)
+[![GitHub stars](https://img.shields.io/github/stars/davidpv/opsx-spec-driven-development-toolkit?style=flat&logo=github)](https://github.com/davidpv/opsx-spec-driven-development-toolkit)
+[![npm version](https://img.shields.io/npm/v/@davidpv/opsx.svg?style=flat&logo=npm)](https://www.npmjs.com/package/@davidpv/opsx)
+[![agents](https://img.shields.io/badge/agents-opencode_%C2%B7_Claude_Code_%C2%B7_Codex-1f6feb)](#quick-start)
 
 A stack-agnostic CLI that scaffolds **spec-driven development** on top of [OpenSpec](https://github.com/Fission-AI/OpenSpec), for [opencode](https://opencode.ai), [Claude Code](https://docs.claude.com/en/docs/claude-code) or [Codex](https://developers.openai.com/codex).
 
 The principle: **Spec → Plan → Code.** Code is the last artifact produced, never the first. Every change is structured as proposal + specs + design + tasks, implemented in an isolated checkout, with full traceability back to the requirements. It follows the [OpenSpec + git-worktree](https://intent-driven.dev/blog/2026/04/01/openspec-git-worktrees-opencode/) discipline.
+
+## Demo
+
+Daily path in `automated` mode: `/start` leaves a reviewed proposal on `develop`, `/work` builds it in a worktree, `/ship` verifies, merges, and archives. You still approve the commit.
+
+![Walkthrough of /start, then /work, then /ship](docs/opsx-demo.gif)
+
+## Why opsx
+
+An agent will start writing code as soon as the task is clear enough to attempt. opsx keeps a spec in front of that code. Each change is a reviewed proposal on `develop`, built in an isolated checkout, and merged only after it matches that proposal. `/ship` then writes the delta back into `openspec/specs/`, so the description of the system stays current and the next change has something trustworthy to read. The backlog stays a task id, the commit stays one you approved, and the daily path stays `/start`, `/work`, `/ship`.
 
 ## Install
 
@@ -199,4 +211,4 @@ npx @davidpv/opsx --version     # installed version
 npx @davidpv/opsx doctor        # verify tooling and project state
 ```
 
-Check the [CHANGELOG](https://github.com/anomalyco/opsx-spec-driven-development-toolkit/releases) for breaking changes before updating.
+Check the [CHANGELOG](./CHANGELOG.md) for breaking changes before updating.
