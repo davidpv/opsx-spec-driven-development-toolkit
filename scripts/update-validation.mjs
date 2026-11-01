@@ -126,7 +126,13 @@ const newPrOpen = read(".opencode/commands/pr-open.md");
 assert(/worktree/i.test(newPrOpen), "UPDATED: pr-open.md is worktree-aware");
 
 const newGitCommit = read(".opencode/commands/git-commit.md");
-assert(/worktree/i.test(newGitCommit), "UPDATED: git-commit.md covers the worktree branch policy");
+assert(
+  /not tied to OpenSpec/i.test(newGitCommit) &&
+    /linked worktree/i.test(newGitCommit) &&
+    /Conventional Commit/.test(newGitCommit) &&
+    !/On `main`: never commit/.test(newGitCommit),
+  "UPDATED: git-commit.md commits from any checkout, including a worktree",
+);
 
 // C. Tasks workflow — branch guards
 for (const file of ["req-capture", "task-import", "task-new", "task-generate", "task-enrich", "task-jira"]) {

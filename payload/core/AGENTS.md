@@ -29,7 +29,7 @@ The pipeline is exposed to users through four top-level wrappers. Everything els
   - **supervised:** apply + verify in **cwd**. Never create a worktree. One change per session (the GUI already parallelizes). Ignore `use_subagents`.
 - **`/ship <change>`** — close:
   - **automated:** verify gate → merge into the integration branch → archive on develop → cleanup worktree → close the linked task.
-  - **supervised:** verify gate; do **not** merge or remove worktrees. Tell the user to merge in the GUI. Archive + close only when re-run from `develop` after the branch has merged.
+  - **supervised:** implementation session: verify, tell the user to merge in the GUI, stop. Planning session on the integration branch (a GUI worktree on that branch counts): the code has landed even when the branch is not an ancestor (squash, rebase, or the GUI deleted it). Then archive + close. Never `git merge` / `git worktree remove` / `git branch -d`. Never refuse archive only because `pwd` is a worktree.
 
 The daily path is **`/start → /work → /ship`**, with `/next` as the "what now?" helper. Everything under `/opsx:*` (plus `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) is an internal primitive the wrappers call — never suggest them to the user as the next step.
 
@@ -50,7 +50,7 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
    - **supervised:** run in cwd (not on `main`). Write the verify record in this checkout.
 7. **Merge, then archive, then close** — `/ship <name>`. Order is **merge → archive**, every time.
    - **automated:** verify gate → merge the worktree branch into `develop` → `/opsx:archive` on `develop` → clean up the worktree and local branch → close the linked task.
-   - **supervised:** verify in the implementation session, tell the user to merge in the GUI, stop. After the GUI merge, re-run `/ship` from a develop planning session to archive + close. Never `git merge` / `git worktree remove` / `git branch -d`.
+   - **supervised:** verify in the implementation session, tell the user to merge in the GUI, stop. After the GUI merge, re-run `/ship` from a planning session on the integration branch to archive + close. Squash and a deleted branch still count as merged. A GUI worktree on that branch is valid. Never `git merge` / `git worktree remove` / `git branch -d`.
 
 For multiple independent changes in **automated** mode, `/work` uses `workflow.use_subagents`. In **supervised** mode, open one GUI workspace per change and run `/work <name>` in each.
 
@@ -78,28 +78,26 @@ Each step refuses to run on the wrong branch and prints the required one. **Neve
 If the current branch is not the integration branch and the command is a planning command (`/start` chain, propose, archive, sync, `/task-*`):
 
 - **automated:** refuse and tell the user to `git checkout <integration_branch>` first.
-- **supervised:** refuse. NEVER run `git checkout`. Tell the user this session is for `/work`; open a planning session on `<integration_branch>` (VS Code without New Worktree, or Superset branch workspace).
+- **supervised:** refuse. NEVER run `git checkout`. Tell the user this session is for `/work`; open a planning session whose branch is `<integration_branch>`. A GUI worktree on that branch is valid.
 
 If cwd is a linked worktree **outside** `git.worktree.dir` (or `SUPERSET_WORKSPACE_NAME` is set) and mode is still `automated`: refuse topology commands (`git worktree add/remove`, `git checkout -b`, `git merge`) and tell the user to set `git.work_mode: supervised`.
 
 ## Commit discipline (mandatory — user-driven)
 
-> **The LLM NEVER runs `git commit`.** All commits in this project are user-driven. After modifying files, the LLM **always** suggests `/git-commit` and lets the user review the message and finalize the commit. This applies to every modified file, every artifact, and every state change — no exceptions, no auto-commits, no recovery commits, no "internal" commits behind the scenes.
+> **The LLM does not commit unless the user says yes in this turn.** No silent commits, no recovery commits, no commits hidden behind a task boundary.
 
-The user is always in control of the commit boundary. They run `/git-commit` when they are ready (or the GUI commit button in supervised mode). No command (`/opsx:*`, `/work`, `/ship`, `/git-commit`, `/task-*`, `/req-capture`) runs `git commit` on behalf of the user.
+The user owns the commit. There are two shapes. Do not mix them.
 
-**Commits SHOULD land at every logical boundary** — the LLM suggests `/git-commit` at each one so the user can act:
+1. **`/work` and `/opsx:apply` — one confirmation at the end of the batch.** Walk every pending task in order, in the same turn. Do not suggest `/git-commit`, do not ask, and do not wait between tasks. The next task runs on uncommitted work. That is the default, in both `automated` and `supervised`. When the batch is finished (`/opsx:apply`: all pending tasks done; `/work`: those tasks plus verify for that change), stage it, show one conventional commit message and the file list, and ask once. On yes, `git commit` that batch — **one commit for the change, not one per task**. On no, leave it staged and continue the command. If the loop paused on a blocker, report the blocker and wait. Do not also ask to commit the partial batch.
+2. **Every other boundary** — suggest `/git-commit` and wait. Do not run `git commit` yourself:
+   - After `/opsx:propose` creates the change directory — all generated artifacts in one commit.
+   - After `/opsx:archive` syncs delta specs into `openspec/specs/`.
+   - After `/req-capture` writes the discovery doc.
+   - After each new/edit produced by `/task-import`, `/task-new`, `/task-generate`, `/task-enrich`.
+   - After `/task-jira` (optional — exports are paste-targets).
+   - After `/ship` closes the linked task (`status: done`).
 
-- After `/opsx:propose` creates the change directory — all generated artifacts (proposal, specs, design, tasks) in one commit.
-- After each completed task inside the isolated checkout.
-- After `/opsx:verify` writes the verification record.
-- After `/opsx:archive` syncs delta specs into `openspec/specs/`.
-- After `/req-capture` writes the discovery doc.
-- After each new/edit produced by `/task-import`, `/task-new`, `/task-generate`, `/task-enrich`.
-- After `/task-jira` (optional — exports are paste-targets).
-- After `/ship` closes the linked task (`status: done`).
-
-The LLM **suggests** `/git-commit` at each of these boundaries and waits for the user. A dense commit history is still the recovery point when a SubAgent session goes wrong mid-apply — but the user creates it, not the agent.
+Standalone `/opsx:verify` (the user invoked it, not `/work`) suggests `/git-commit` for the record and waits. Inside `/work`, verify writes and stages the record and returns. `/work` asks once, after verify. Do not delegate that batch to `/git-commit`: that command splits by concern and would stop again.
 
 ## Guided flow
 
@@ -126,7 +124,7 @@ planning session on develop  →  /ship   (archive + close)
 - `openspec/specs/` is the source of truth for current system behavior. Read it before proposing changes; never edit it directly — it only changes via `/opsx:archive`.
 - Requirements use RFC-2119 keywords (MUST/SHALL/SHOULD/MAY). Each requirement has at least one scenario.
 - If during implementation you discover the spec was wrong or incomplete, stop, update the spec, then continue. Do not silently diverge. On `develop`, use `/opsx:sync` to apply the delta; inside the isolated checkout, edit the delta spec and re-sync after merge.
-- **Never run `git commit`.** The user always commits. After any file modification — code, specs, artifacts, config, anything — finish by suggesting `/git-commit` so the user can review the message and finalize the commit. Do not stage with `git add` and commit in the same turn; let `/git-commit` do both under user control.
+- **Do not commit without an explicit yes in this turn.** During `/work` and `/opsx:apply`, do not stop after each file or task to suggest `/git-commit` — finish the batch, then ask once (see Commit discipline). Other commands still suggest `/git-commit` and wait; they do not commit themselves.
 - Keep changes small: one concern per change, one isolated checkout per change.
 - Validate before archiving: `openspec validate <change> --strict`. `/ship` runs this as part of its verify gate.
 - `workflow.yaml` at the repo root defines branches, `work_mode`, commit convention, Jira/export settings, worktree settings, and model routing. Pipeline commands read it; never hardcode branch names or platforms.

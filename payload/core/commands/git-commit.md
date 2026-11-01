@@ -1,8 +1,8 @@
 ---
-description: Conventional, semantic commits from staged changes — or the full working tree if nothing is staged
+description: Conventional commits for the current git work, from any checkout
 ---
 
-Create conventional commits for the current git work. Works in any repository, on any branch. No OpenSpec project, `workflow.yaml`, or branch layout required. `$ARGUMENTS` is an optional hint (intent, scope, or a draft subject) — not a message to commit verbatim.
+Create conventional commits for whatever git checkout you are in. This command is not tied to OpenSpec, `workflow.yaml`, a branch name, or a worktree. Run it from `main`, `develop`, a feature branch, a linked worktree, or any other repository. The commit lands on the branch that checkout already has. Do not switch branches, create or remove worktrees, or refuse because of where you are. `$ARGUMENTS` is an optional hint (intent, scope, or a draft subject) — not a message to commit verbatim.
 
 **Steps**
 

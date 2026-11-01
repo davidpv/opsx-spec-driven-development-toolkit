@@ -23,7 +23,7 @@ This is an **agent-driven** operation - you will read delta specs and directly e
 
    Show changes that have delta specs (under `specs/` directory).
 
-   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
+   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose. If the caller already passed a change name, skip this prompt and use that name.
 
 2. **Resolve change context**
 

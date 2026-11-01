@@ -4,7 +4,7 @@ description: Archive a completed change — runs on the integration branch, afte
 
 Archive a completed change. The delta specs merge into `openspec/specs/`, the source of truth.
 
-> **Branch guard — non-negotiable.** `/opsx:archive` MUST run on the integration branch (`develop`, configured as `git.integration_branch` in `workflow.yaml`). It MUST NOT run on a feature branch or inside a worktree. The spec-sync needs the full view of every other merged change to detect conflicts; running it on a worktree branch would blind it to that context and produce spec drift.
+> **Branch guard — non-negotiable.** `/opsx:archive` MUST run on the integration branch (`develop`, configured as `git.integration_branch` in `workflow.yaml`). It MUST NOT run on a feature branch. The spec-sync needs the full view of every other merged change to detect conflicts; running it on a feature branch would blind it to that context and produce spec drift. A linked worktree whose **branch** is the integration branch is valid — that is the normal supervised planning session. Do not refuse because `pwd` is a worktree.
 >
 > **Order discipline.** Archive runs **after** the worktree branch has been merged into the integration branch (i.e., after `/ship` step 3). The flow is **merge → archive**, in that order, every time. This command is what `/ship` calls internally between merge and cleanup.
 
@@ -21,7 +21,7 @@ Archive a completed change. The delta specs merge into `openspec/specs/`, the so
 
    - Read `git.integration_branch` from `workflow.yaml`.
    - If the current branch is not the integration branch, resolve `git.work_mode`. **automated:** refuse and tell the user to `git checkout <integration_branch>` first. **supervised:** refuse, NEVER `git checkout` — this session is for `/work`; open a planning session on `<integration_branch>`.
-   - If `git worktree list` shows the working dir is inside a worktree, refuse and tell the user to run this from the main checkout, not from inside a worktree path.
+   - Do **not** refuse a linked worktree when the current branch is the integration branch. In `supervised` that checkout is the planning session.
 
 1. **If no change name provided, prompt for selection**
 
@@ -30,7 +30,7 @@ Archive a completed change. The delta specs merge into `openspec/specs/`, the so
    Show only active changes (not already archived).
    Include the schema used for each change if available.
 
-   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
+   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose. If `/ship` or the user already passed a change name, skip this prompt.
 
 2. **Check artifact completion status**
 
@@ -44,9 +44,8 @@ Archive a completed change. The delta specs merge into `openspec/specs/`, the so
    If status reports `actionContext.mode: "workspace-planning"`, explain that workspace archive is not supported in this slice and STOP. Do not move workspace changes into repo-local archives or edit linked repos.
 
    **If any artifacts are not `done`:**
-   - Display warning listing incomplete artifacts
-   - Prompt user for confirmation to continue
-   - Proceed if user confirms
+   - Display a warning listing incomplete artifacts
+   - Continue. Do not ask for confirmation. `/ship` must not stall here.
 
 3. **Check task completion status**
 
@@ -55,9 +54,8 @@ Archive a completed change. The delta specs merge into `openspec/specs/`, the so
    Count tasks marked with `- [ ]` (incomplete) vs `- [x]` (complete).
 
    **If incomplete tasks found:**
-   - Display warning showing count of incomplete tasks
-   - Prompt user for confirmation to continue
-   - Proceed if user confirms
+   - Display a warning with the count of incomplete tasks
+   - Continue. Do not ask for confirmation.
 
    **If no tasks file exists:** Proceed without task-related warning.
 
@@ -70,11 +68,7 @@ Archive a completed change. The delta specs merge into `openspec/specs/`, the so
    - Determine what changes would be applied (adds, modifications, removals, renames)
    - Show a combined summary before prompting
 
-   **Prompt options:**
-   - If changes needed: "Sync now (recommended)", "Archive without syncing"
-   - If already synced: "Archive now", "Sync anyway", "Cancel"
-
-   If user chooses sync, use the **Skill tool** to invoke `openspec-sync-specs` for change `<name>` (agent-driven). Proceed to archive regardless of choice.
+   Show the summary, then sync. Do not offer "archive without syncing" and do not ask. Use the `openspec-sync-specs` skill for change `<name>` yourself — pass the name, do not prompt for a change, do not spawn a SubAgent. If the specs are already synced, say so and continue.
 
 5. **Perform the archive**
 
@@ -99,7 +93,7 @@ Archive a completed change. The delta specs merge into `openspec/specs/`, the so
    > **Never run `git commit` automatically.** All commits are user-driven. The spec-sync is a meaningful state change, but the user creates the commit; the LLM only stages and suggests `/git-commit`.
 
    ```bash
-   git add openspec/specs/
+   git add openspec/specs openspec/changes
    ```
 
    The user runs `/git-commit` to review the message and finalize the commit so the next proposal sees the updated `openspec/specs/`.
@@ -144,13 +138,12 @@ Target archive directory already exists.
 
 **Guardrails**
 
-- **Always run the branch guard first.** Refuse and exit if the working branch or working dir is wrong.
-- Always prompt for change selection if not provided
+- **Always run the branch guard first.** Refuse if the branch is wrong. Do not refuse a worktree whose branch is the integration branch.
+- Prompt for change selection only when no name was provided
 - Use artifact graph (`openspec status --json`) for completion checking
-- Don't block archive on warnings - just inform and confirm
+- Don't block archive on warnings — inform and continue. Do not ask.
 - Preserve `.openspec.yaml` when moving to archive (it moves with the directory)
 - Show clear summary of what happened
-- If sync is requested, use the Skill tool to invoke `openspec-sync-specs` (agent-driven)
-- If delta specs exist, always run the sync assessment and show the combined summary before prompting
-- The final spec-sync commit lands on the integration branch, not on the worktree branch
+- If delta specs exist, sync them. Show the summary. Do not prompt. Do not spawn a SubAgent.
+- The final spec-sync commit lands on the integration branch, not on a feature branch
 - **Never run `git commit` automatically** — stage the archive result and suggest `/git-commit` for the user to finalize

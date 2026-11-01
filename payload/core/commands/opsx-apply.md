@@ -94,27 +94,45 @@ Implement tasks from an OpenSpec change. In `automated` mode, operates inside a 
 
 7. **Implement tasks (loop until done or blocked)**
 
-   For each pending task:
+   For each pending task, in order, in this same turn:
    - Show which task is being worked on
-   - Make the code changes required (inside the worktree / feature branch)
+   - Make the code changes required (inside the isolated checkout)
    - Keep changes minimal and focused
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - **Never run `git commit` automatically.** At each task boundary, suggest `/git-commit` so the user reviews the message and finalizes the commit themselves. The commit must happen before moving to the next task — this is the recovery point pattern, but the LLM does not create the commit; the user does via `/git-commit`.
+   - Continue to the next pending task immediately
 
-   **Pause if:**
+   Do **not** suggest `/git-commit`, do **not** ask the user, and do **not** wait for a commit between tasks. The next task runs on uncommitted work. That is the default, in both `automated` and `supervised`.
+
+   **Pause only if:**
    - Task is unclear → ask for clarification
    - Implementation reveals a design issue → suggest updating artifacts
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-8. **On completion or pause, show status**
+   A pause is not a commit boundary. Do not ask to commit a partial batch.
+
+8. **One commit confirmation — only when this command was invoked directly**
+
+   If `/work` is driving this loop, skip this step and return. `/work` verifies, then asks once for the whole batch. Do not ask here.
+
+   If every pending task is done:
+   - Stage the implementation files and the updated tasks file. Do not stage secrets (`.env`, keys, credentials).
+   - Show **one** conventional commit — `type(<change>): subject`, imperative, ≤72 chars — and the file list. One commit for the whole batch. Do not split per task. Do not add a footer.
+   - Ask once with **AskUserQuestion**: commit this batch now?
+   - On yes: `git commit -m "<message>"`. No `--amend`, no `--no-verify`.
+   - On no: leave the index staged and continue to the status report.
+   - Never commit without that yes. Do not hand this batch to `/git-commit` (it splits by concern and stops again).
+
+9. **On completion or pause, show status**
 
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - Working branch and worktree path
-   - If all done: suggest `/opsx:verify <change>` (in the worktree)
-   - If paused: explain why and wait for guidance
+   - Working branch and checkout path
+   - If all done and the user confirmed: the commit hash
+   - If all done and the user declined: the batch is staged, not committed
+   - If all done and this command was invoked directly: suggest `/opsx:verify <change>`, then `/ship <change>`
+   - If paused: explain why and wait for guidance. Do not ask to commit.
 
 **Output During Implementation**
 
@@ -125,7 +143,7 @@ Worktree: <worktree-dir>/<change>/ on branch <worktree-branch>
 
 Working on task 3/7: <task description>
 [...implementation happening...]
-✓ Task complete — next: /git-commit (LLM does not auto-commit; user reviews and runs /git-commit)
+✓ Task complete — continuing to the next task (no commit yet)
 ```
 
 **Output On Completion**
@@ -144,7 +162,7 @@ Working on task 3/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete. Next: `/opsx:verify <change>` (run inside the worktree), then `/ship <change>`.
+All tasks complete. One commit confirmation for this batch (skipped when `/work` is the caller — `/work` asks after verify). Then `/opsx:verify <change>`, then `/ship <change>`.
 ```
 
 **Output On Pause (Issue Encountered)**
@@ -177,7 +195,7 @@ What would you like to do?
 - Pause on errors, blockers, or unclear requirements - don't guess
 - Use contextFiles from CLI output, don't assume specific file names
 - **All edits MUST happen inside the isolated checkout** (`automated`: the opsx worktree; `supervised`: cwd) — never in the main checkout for another change
-- **Never run `git commit`.** Suggest `/git-commit` at every task boundary so the user creates the commit themselves — never edit the next task on top of an uncommitted state, but never commit on the user's behalf either.
+- **Do not stop between tasks for a commit.** Finish the pending tasks, then ask once (step 8) — unless `/work` is the caller, in which case return without asking. Never commit without an explicit yes. Never require a commit before the next task.
 
 **Fluid Workflow Integration**
 

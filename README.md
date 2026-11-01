@@ -1,10 +1,22 @@
 # opsx — Spec-Driven Development Toolkit
 
-[![npm version](https://img.shields.io/npm/v/@davidpv/opsx.svg)](https://www.npmjs.com/package/@davidpv/opsx)
+[![GitHub stars](https://img.shields.io/github/stars/davidpv/opsx-spec-driven-development-toolkit?style=flat&logo=github)](https://github.com/davidpv/opsx-spec-driven-development-toolkit)
+[![npm version](https://img.shields.io/npm/v/@davidpv/opsx.svg?style=flat&logo=npm)](https://www.npmjs.com/package/@davidpv/opsx)
+[![agents](https://img.shields.io/badge/agents-opencode_%C2%B7_Claude_Code_%C2%B7_Codex-1f6feb)](#quick-start)
 
 A stack-agnostic CLI that scaffolds **spec-driven development** on top of [OpenSpec](https://github.com/Fission-AI/OpenSpec), for [opencode](https://opencode.ai), [Claude Code](https://docs.claude.com/en/docs/claude-code) or [Codex](https://developers.openai.com/codex).
 
 The principle: **Spec → Plan → Code.** Code is the last artifact produced, never the first. Every change is structured as proposal + specs + design + tasks, implemented in an isolated checkout, with full traceability back to the requirements. It follows the [OpenSpec + git-worktree](https://intent-driven.dev/blog/2026/04/01/openspec-git-worktrees-opencode/) discipline.
+
+## Demo
+
+Daily path in `automated` mode: `/start` leaves a reviewed proposal on `develop`, `/work` builds it in a worktree, `/ship` verifies, merges, and archives. You still approve the commit.
+
+![Walkthrough of /start, then /work, then /ship](docs/opsx-demo.gif)
+
+## Why opsx
+
+An agent will start writing code as soon as the task is clear enough to attempt. opsx keeps a spec in front of that code. Each change is a reviewed proposal on `develop`, built in an isolated checkout, and merged only after it matches that proposal. `/ship` then writes the delta back into `openspec/specs/`, so the description of the system stays current and the next change has something trustworthy to read. The backlog stays a task id, the commit stays one you approved, and the daily path stays `/start`, `/work`, `/ship`.
 
 ## Install
 
@@ -83,7 +95,7 @@ opsx creates the worktree, implements, verifies, squash-merges into `develop`, a
 
 - `/start` inside a feature worktree refuses (never `git checkout develop`). That session is for `/work`.
 - `/work` on `develop` in supervised mode refuses (never creates `.worktrees/`). Create a GUI workspace first.
-- `/ship` in the implementation session verifies and tells you to merge in the GUI. Archive runs when you re-run `/ship` from `develop` after the branch has merged.
+- `/ship` in the implementation session verifies and tells you to merge in the GUI. Archive runs when you re-run `/ship` from `develop` after the branch has merged. A squash merge and a deleted branch still count.
 
 Propose, archive, and `/task-*` always run on the integration branch. OpenSpec needs every in-flight change plus `openspec/specs/` — planning on a stale GUI branch would miss conflicts.
 
@@ -124,10 +136,10 @@ For non-trivial initiatives, `/start` will chain the backlog steps (requirements
 - **Verify before merge.** `/ship` refuses to merge (or to tell the GUI to merge) unless a clean verify report exists for the current state of the branch.
 - **Merge, then archive.** Code lands on `develop` first, then delta specs sync into `openspec/specs/`. In `automated`, `/ship` does both. In `supervised`, the GUI merges; `/ship` on `develop` archives.
 - **`main` is release-only.** Proposals land on the integration branch (`develop` by default). Isolation is either an opsx worktree (`automated`) or a GUI worktree (`supervised`). Configure this with `git.work_mode` in `workflow.yaml`.
-- **The LLM never auto-commits.** All commits are user-driven. Every command ends by suggesting `/git-commit` (or the GUI commit button in `supervised`). After modifying any file — code, specs, artifacts, config — the LLM stages and suggests `/git-commit`; the user reviews the message and finalizes the commit.
+- **The LLM does not commit without a yes.** `/work` and `/opsx:apply` run every pending task without stopping, then ask once at the end of that batch and commit only if you confirm. Other commands suggest `/git-commit` and wait. Nothing auto-commits.
 - **Spec wrong or drifted?** Never diverge silently — run `/opsx:sync` to fix the spec first, then resume.
 
-Traceability chain: **Discovery → Task (Jira) → Change → tasks.md step → user commits via `/git-commit` → merge → archive**. Task IDs ARE Jira keys (`PROJ-123`; `PROJ-Dnn` for drafts).
+Traceability chain: **Discovery → Task (Jira) → Change → tasks.md steps → one confirmed commit for the batch → merge → archive**. Task IDs ARE Jira keys (`PROJ-123`; `PROJ-Dnn` for drafts).
 
 ## Commands
 
@@ -199,4 +211,4 @@ npx @davidpv/opsx --version     # installed version
 npx @davidpv/opsx doctor        # verify tooling and project state
 ```
 
-Check the [CHANGELOG](https://github.com/anomalyco/opsx-spec-driven-development-toolkit/releases) for breaking changes before updating.
+Check the [CHANGELOG](./CHANGELOG.md) for breaking changes before updating.
