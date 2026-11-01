@@ -29,7 +29,7 @@ The pipeline is exposed to users through four top-level wrappers. Everything els
   - **supervised:** apply + verify in **cwd**. Never create a worktree. One change per session (the GUI already parallelizes). Ignore `use_subagents`.
 - **`/ship <change>`** — close:
   - **automated:** verify gate → merge into the integration branch → archive on develop → cleanup worktree → close the linked task.
-  - **supervised:** verify gate; do **not** merge or remove worktrees. Tell the user to merge in the GUI. Archive + close only when re-run from `develop` after the branch has merged.
+  - **supervised:** implementation session: verify, tell the user to merge in the GUI, stop. Planning session on the integration branch (a GUI worktree on that branch counts): the code has landed even when the branch is not an ancestor (squash, rebase, or the GUI deleted it). Then archive + close. Never `git merge` / `git worktree remove` / `git branch -d`. Never refuse archive only because `pwd` is a worktree.
 
 The daily path is **`/start → /work → /ship`**, with `/next` as the "what now?" helper. Everything under `/opsx:*` (plus `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) is an internal primitive the wrappers call — never suggest them to the user as the next step.
 
@@ -50,7 +50,7 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
    - **supervised:** run in cwd (not on `main`). Write the verify record in this checkout.
 7. **Merge, then archive, then close** — `/ship <name>`. Order is **merge → archive**, every time.
    - **automated:** verify gate → merge the worktree branch into `develop` → `/opsx:archive` on `develop` → clean up the worktree and local branch → close the linked task.
-   - **supervised:** verify in the implementation session, tell the user to merge in the GUI, stop. After the GUI merge, re-run `/ship` from a develop planning session to archive + close. Never `git merge` / `git worktree remove` / `git branch -d`.
+   - **supervised:** verify in the implementation session, tell the user to merge in the GUI, stop. After the GUI merge, re-run `/ship` from a planning session on the integration branch to archive + close. Squash and a deleted branch still count as merged. A GUI worktree on that branch is valid. Never `git merge` / `git worktree remove` / `git branch -d`.
 
 For multiple independent changes in **automated** mode, `/work` uses `workflow.use_subagents`. In **supervised** mode, open one GUI workspace per change and run `/work <name>` in each.
 
@@ -78,7 +78,7 @@ Each step refuses to run on the wrong branch and prints the required one. **Neve
 If the current branch is not the integration branch and the command is a planning command (`/start` chain, propose, archive, sync, `/task-*`):
 
 - **automated:** refuse and tell the user to `git checkout <integration_branch>` first.
-- **supervised:** refuse. NEVER run `git checkout`. Tell the user this session is for `/work`; open a planning session on `<integration_branch>` (VS Code without New Worktree, or Superset branch workspace).
+- **supervised:** refuse. NEVER run `git checkout`. Tell the user this session is for `/work`; open a planning session whose branch is `<integration_branch>`. A GUI worktree on that branch is valid.
 
 If cwd is a linked worktree **outside** `git.worktree.dir` (or `SUPERSET_WORKSPACE_NAME` is set) and mode is still `automated`: refuse topology commands (`git worktree add/remove`, `git checkout -b`, `git merge`) and tell the user to set `git.work_mode: supervised`.
 

@@ -83,7 +83,7 @@ opsx creates the worktree, implements, verifies, squash-merges into `develop`, a
 
 - `/start` inside a feature worktree refuses (never `git checkout develop`). That session is for `/work`.
 - `/work` on `develop` in supervised mode refuses (never creates `.worktrees/`). Create a GUI workspace first.
-- `/ship` in the implementation session verifies and tells you to merge in the GUI. Archive runs when you re-run `/ship` from `develop` after the branch has merged.
+- `/ship` in the implementation session verifies and tells you to merge in the GUI. Archive runs when you re-run `/ship` from `develop` after the branch has merged. A squash merge and a deleted branch still count.
 
 Propose, archive, and `/task-*` always run on the integration branch. OpenSpec needs every in-flight change plus `openspec/specs/` — planning on a stale GUI branch would miss conflicts.
 
