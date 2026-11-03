@@ -28,8 +28,8 @@ The pipeline is exposed to users through four top-level wrappers. Everything els
   - **automated:** one git worktree per change. Multiple changes: `workflow.use_subagents` (`yes` default) fans out one SubAgent per non-conflicting change; `no` applies sequentially. SubAgents do not merge.
   - **supervised:** apply + verify in **cwd**. Never create a worktree. One change per session (the GUI already parallelizes). Ignore `use_subagents`.
 - **`/ship <change>`** — close:
-  - **automated:** verify gate → merge into the integration branch → archive on develop → cleanup worktree → close the linked task.
-  - **supervised:** implementation session: verify, tell the user to merge in the GUI, stop. Planning session on the integration branch (a GUI worktree on that branch counts): the code has landed even when the branch is not an ancestor (squash, rebase, or the GUI deleted it). Then archive + close. Never `git merge` / `git worktree remove` / `git branch -d`. Never refuse archive only because `pwd` is a worktree.
+  - **automated:** if the feature branch is already on the integration branch (manual merge or PR, including squash and a deleted branch or removed worktree), skip verify and merge, then archive, clean up leftovers, and close the task. Do not send the user back to `/work`. Otherwise: verify gate → merge into the integration branch → archive on develop → cleanup worktree → close the linked task.
+  - **supervised:** implementation session: verify, tell the user to merge in the GUI, stop. Planning session on the integration branch (a GUI worktree on that branch counts): the implementation branch is the GUI's name, not `feature/<change>`. A manual merge or a PR still counts when that branch is not an ancestor (squash, rebase, or the GUI deleted it). Then archive + close. Do not suggest `/work` from this session. Never `git merge` / `git worktree remove` / `git branch -d`. Never refuse archive only because `pwd` is a worktree.
 
 The daily path is **`/start → /work → /ship`**, with `/next` as the "what now?" helper. Everything under `/opsx:*` (plus `/git-commit`, `/review-change`, `/task-*`, `/req-capture`) is an internal primitive the wrappers call — never suggest them to the user as the next step.
 
@@ -49,8 +49,8 @@ The full pipeline runs from requirements to merge. Stages 0–1 are optional for
    - **automated:** must run inside `.worktrees/<change>/`.
    - **supervised:** run in cwd (not on `main`). Write the verify record in this checkout.
 7. **Merge, then archive, then close** — `/ship <name>`. Order is **merge → archive**, every time.
-   - **automated:** verify gate → merge the worktree branch into `develop` → `/opsx:archive` on `develop` → clean up the worktree and local branch → close the linked task.
-   - **supervised:** verify in the implementation session, tell the user to merge in the GUI, stop. After the GUI merge, re-run `/ship` from a planning session on the integration branch to archive + close. Squash and a deleted branch still count as merged. A GUI worktree on that branch is valid. Never `git merge` / `git worktree remove` / `git branch -d`.
+   - **automated:** if the feature branch is already on the integration branch (manual merge or PR, including squash and a deleted branch or removed worktree), skip verify and merge, then archive, clean up leftovers, and close the task. Do not send the user back to `/work`. Otherwise: verify gate → merge the worktree branch into `develop` → archive on `develop` → clean up the worktree and local branch → close the linked task.
+   - **supervised:** verify in the implementation session, tell the user to merge in the GUI, stop. After the GUI merge, re-run `/ship` from a planning session on the integration branch to archive + close. The merged branch is the GUI's name, not `feature/<change>`. Squash, a PR, and a deleted branch still count as merged. Do not suggest `/work` from that session. A GUI worktree on that branch is valid. Never `git merge` / `git worktree remove` / `git branch -d`.
 
 For multiple independent changes in **automated** mode, `/work` uses `workflow.use_subagents`. In **supervised** mode, open one GUI workspace per change and run `/work <name>` in each.
 

@@ -22,10 +22,11 @@ Only ever suggest a wrapper command — `/start`, `/work`, or `/ship`. Never sug
 |-------|---------|
 | Nothing in backlog, no in-flight change | `/start` — guided entry: it routes an existing Jira ticket, a direct proposal, or creating the task first |
 | Work still being set up on `develop` (discovery without tasks, `status: draft` tasks, or a change with incomplete/unreviewed artifacts) | `/start` — it continues the on-ramp: task setup → propose → review |
-| Reviewed proposal on `develop`, not yet built (no isolated checkout, or one with unchecked tasks / uncommitted work / verify not yet run) | `/work <name>` — `automated`: builds it in a worktree. `supervised`: if still on develop, tell the user to open a GUI workspace first; if already in one, apply + verify in cwd |
+| Change already on the integration branch (manual merge or merged PR; squash and a deleted branch still count). In supervised the branch is the GUI's name, not `feature/<change>` | `/ship <name>` — archive + close. Do not suggest `/work`. |
+| Reviewed proposal on `develop`, not yet built (no isolated checkout and the feature branch has not landed, or a checkout with unchecked tasks / uncommitted work / verify not yet run) | `/work <name>` — `automated`: builds it in a worktree. `supervised`: if still on develop, tell the user to open a GUI workspace first; if already in one, apply + verify in cwd |
 | Multiple active changes ready to build | `automated`: `/work [changes...]` governed by `workflow.use_subagents`. `supervised`: one GUI workspace per change, `/work <name>` in each |
 | Build complete and verified | `/ship <name>` — `automated`: verify → merge → archive → cleanup → close. `supervised`: verify + merge-in-GUI, then `/ship` on develop to archive |
-| Worktree branch merged into `develop` but not archived, or worktree path still lingering | `/ship <name>` — re-run to finish archive + cleanup (`automated` cleanup only) |
+| Worktree path still lingering after the branch landed on `develop` | `/ship <name>` — finish archive + cleanup (`automated` cleanup only) |
 | Change archived but task not `done` | `/ship <name>` — re-run to finish close-out, then `/start` for the next |
 | Everything closed | list pending tasks from the backlog and suggest `/start` on the highest-priority one |
 
