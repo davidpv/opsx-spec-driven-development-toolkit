@@ -2,7 +2,9 @@
 description: Apply changes via SubAgents (parallel, default) or sequentially — gated by workflow.use_subagents; verify and report back (does not merge)
 ---
 
-`/work` is the batch-implementation entrypoint. It runs the same daily commands (`/opsx:apply`, `/opsx:verify`) for one or more changes.
+`/work` is the batch-implementation entrypoint. For each change it applies, then verifies, in the same turn.
+
+**Apply, then verify, same turn.** Finish apply, then read the installed verify command and execute it before any commit prompt, status report, or `/ship` suggestion. Do not print `/opsx:verify` and wait. Do not stop when apply returns. A `/work` run that applied tasks and did not write `.openspec/verify-<timestamp>.md` in that checkout is incomplete.
 
 **Resolve `git.work_mode` first** (`automated` / alias `worktree` → automated; `supervised` → supervised; anything else → stop).
 
@@ -50,7 +52,7 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    - If current branch is `main` (release): refuse.
    - If current branch is the integration branch: refuse. *"supervised: `/work` runs inside a GUI workspace/worktree, not on `<integration_branch>`. Create a new workspace from `<integration_branch>` in VS Code Agents / Superset / Copilot, then re-run `/work` there. Do not `git checkout`."*
    - Bind **one** change: `$ARGUMENTS` (a single name), else conversation, else the single active change in `openspec/changes/`. If `$ARGUMENTS` lists several names: refuse — *"this session is one workspace. Open one GUI workspace per change and run `/work <name>` in each."*
-   - Skip steps 3–4a (no grouping, no SubAgents, no `git worktree add`). Apply + verify **in cwd** using the task loop in step 4b items 2–3: every pending task, then verify, with no question and no commit between tasks. Then the one commit confirmation in step 4b item 3b. Then report (step 5) with Worktree = cwd and Branch = current branch. Suggest `/ship <change>` (verify + merge-in-GUI).
+   - Skip steps 3–4a (no grouping, no SubAgents, no `git worktree add`). In cwd, run step 4b item 2 when any task is unchecked, then item 3 (read and execute the installed verify command). No question and no commit between tasks. Then the one commit confirmation in step 4b item 3b. Then report (step 5) with Worktree = cwd and Branch = current branch. Suggest `/ship <change>` (verify + merge-in-GUI).
 
 2. **Resolve the candidate changes**
 
@@ -64,10 +66,11 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    - `artifactPaths.tasks.existingOutputPaths` — the tasks file
    - `artifactPaths.specs.existingOutputPaths` — the delta specs
 
-   Filter to changes where:
-   - All `applyRequires` artifacts are `done`.
-   - Tasks still have unchecked items (i.e. not yet implemented, or partially implemented).
-   - The change does NOT already have a verification record newer than its last code commit.
+   Keep a change when every `applyRequires` artifact is `done` and either:
+   - Tasks still have unchecked items (not yet implemented, or partially implemented), or
+   - Every task is checked, and the verification record is missing or older than the last code commit.
+
+   Drop a change whose tasks are all checked and whose verification record is newer than its last code commit. It is already built. A second `/work` still picks up a change that was applied and never verified.
 
    If `$ARGUMENTS` listed specific changes, intersect with the candidate set. If the intersection is empty, say so and stop.
 
@@ -131,15 +134,22 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    ## Apply
    5. Run `openspec instructions apply --change "<change>" --json`. The CLI gives you `contextFiles` (the artifact paths) and the task list.
    6. Read every `contextFiles` file.
-   7. For each unchecked task in `tasks.md`, in order, without stopping:
+   7. If every task is already checked, skip steps 8–9 and run Verify.
+   8. For each unchecked task in `tasks.md`, in order, without stopping:
       - Make the code change inside this worktree only. Never touch the main checkout.
       - Mark `- [ ]` → `- [x]` immediately after each task.
       - Continue to the next task. Do not suggest `/git-commit`. Do not ask. Do not commit. The user is not in this session.
-   8. Pause and report only if a task is genuinely ambiguous — do NOT invent answers. A pause is not a commit boundary.
+   9. Pause and report only if a task is genuinely ambiguous — do NOT invent answers. A pause is not a commit boundary.
 
    ## Verify
-   9. Run the `/opsx:verify <change>` logic inside the worktree. Write `<worktree-dir>/<change>/.openspec/verify-<timestamp>.md`, stage the record, and return. Do not ask for a commit. Do not wait.
-   10. CRITICAL issues must be fixed before you report back — iterate on tasks until verify is clean or only WARNING/SUGGESTION remain. Still no commit prompt.
+   10. Verify is required before you report. You are already inside the worktree. Read the installed verify command and execute it now. Do not print `/opsx:verify` and wait.
+       - Claude Code: `.claude/commands/opsx-verify.md`
+       - OpenCode: `.opencode/commands/opsx-verify.md`
+       - Codex: `.codex/skills/opsx-verify/SKILL.md`
+       - Caller is `/work`. The change name is `<change>`. Skip verify step 1. Do not ask which change.
+       - Run verify steps 0 and 2–10. Step 9 stages `.openspec/` and does not ask. Bring the step 10 report back here.
+       - If any CRITICAL issue remains, fix it in this worktree and execute the verify command again. WARNING and SUGGESTION do not block.
+       - Do not report back until `.openspec/verify-<timestamp>.md` exists in this worktree. Still no commit prompt.
 
    ## Report
    11. Stage the whole batch (implementation files, tasks file, `.openspec/`). Do not commit. Report back to the coordinator:
@@ -153,6 +163,8 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
    - DO NOT run `/ship`, `/opsx:archive`, or any merge command.
    - DO NOT run `git commit`.
    - DO NOT stop after a task to wait for `/git-commit`.
+   - DO NOT return after Apply without executing Verify.
+   - DO NOT ask which change to verify.
    - DO NOT touch the main checkout.
    - DO NOT switch branches — stay on `feature/<change>` in your worktree.
    - DO NOT delete the worktree when you finish.
@@ -160,7 +172,7 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
 
    **4b. Sequential apply on the main checkout (no SubAgents)**
 
-   The coordinator itself runs `/opsx:apply` and `/opsx:verify` for each change, one at a time, on the main checkout. No SubAgent is spawned. Each change still gets its own worktree (the verify gate requires it), and the worktree is left in place for `/ship` to merge later — the same shape as parallel mode, just driven by the coordinator.
+   The coordinator applies, then verifies, each change, one at a time. No SubAgent is spawned. Each change still gets its own worktree (the verify gate requires it), and the worktree is left in place for `/ship` to merge later — the same shape as parallel mode, just driven by the coordinator.
 
    For each change in the order they were given in `$ARGUMENTS` (or, if `$ARGUMENTS` was omitted, the order returned by `openspec list`):
 
@@ -171,12 +183,21 @@ This is the workflow described in https://intent-driven.dev/blog/2026/04/01/open
       ```
       If the worktree already exists, just `cd` into it. If the branch `feature/<change>` already exists on the integration branch, `git worktree add` will fail — abort with a clear message and let the user decide (typically: `git worktree remove` and re-run, or skip the change).
 
-   2. **Apply.** Run `openspec instructions apply --change "<change>" --json` to read the task list and context files. For each unchecked task in `tasks.md`, in order, in this same turn:
+   2. **Apply.** If every task is already checked, skip this item and run item 3. Otherwise run `openspec instructions apply --change "<change>" --json` to read the task list and context files. For each unchecked task in `tasks.md`, in order, in this same turn:
       - Make the code change inside this worktree only. Never touch the main checkout.
       - Mark `- [ ]` → `- [x]` immediately after each task.
       - Continue to the next unchecked task. Do not suggest `/git-commit`, do not ask, and do not wait. Uncommitted work across tasks is expected.
+      - When the task loop finishes, do not show apply's "suggest `/opsx:verify`" completion. Go straight to item 3.
 
-   3. **Verify.** Run the `/opsx:verify <change>` logic inside the worktree. It writes and stages the record and returns — it must not ask for a commit and must not wait. CRITICAL issues MUST be fixed (iterate on tasks, still without a commit prompt) before moving on; WARNING/SUGGESTION are tolerable but reported.
+   3. **Verify — required, same turn.** The change name is already bound. You are already inside this checkout (`automated`: the worktree; `supervised`: cwd). Read the installed verify command and execute it now:
+      - Claude Code: `.claude/commands/opsx-verify.md`
+      - OpenCode: `.opencode/commands/opsx-verify.md`
+      - Codex: `.codex/skills/opsx-verify/SKILL.md`
+      - Do not print `/opsx:verify` and wait. Do not skip it because apply already checked the tasks.
+      - Caller is `/work`. Skip verify step 1. Do not ask which change.
+      - Run verify steps 0 and 2–10. Step 9 stages `.openspec/` and returns without asking. The step 10 report comes back to this step.
+      - If any CRITICAL issue remains, fix it in this checkout and execute the verify command again before item 3b. WARNING and SUGGESTION are reported and do not block.
+      - Do not continue to the commit confirmation, the report, or the next change until `.openspec/verify-<timestamp>.md` exists in this checkout.
 
    3b. **One commit confirmation for this change.** After verify:
       - Stage the batch in this worktree: implementation files, the tasks file, and `.openspec/`. Do not stage secrets.
@@ -292,4 +313,5 @@ Next: inspect each row, then run `/ship <change>` per change in sequence.
 - **`workflow.use_subagents` is the ONLY switch for `/work`'s parallel vs sequential mode in `automated`.** There is no env-var override. It is **ignored** when `work_mode` is `supervised`.
 - **In `supervised` mode, NEVER create, remove, or merge git topology.** One change per session; the GUI owns isolation.
 - **The task loop does not stop for a commit.** No per-task `/git-commit`. One confirmation after verify, for the whole batch of that change. SubAgents stage and return; they never ask and never commit.
+- **Verify is part of `/work`, not a follow-up.** After apply returns, read the installed verify command and execute steps 0 and 2–10 in the same turn, in the same checkout. Do not suggest `/opsx:verify`. A run that applied tasks and did not write `.openspec/verify-<timestamp>.md` is incomplete.
 - **Suggestions are advice, not actions.** `/work` prints plans and reports; the user runs `/ship` and any follow-up fix commands.
