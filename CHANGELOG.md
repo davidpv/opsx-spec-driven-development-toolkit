@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0](https://github.com/davidpv/opsx-spec-driven-development-toolkit/compare/opsx-v1.3.0...opsx-v2.0.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workflow:** git.work_mode is now automated | supervised. worktree remains a deprecated alias of automated. feature and flexible are no longer valid.
+
+### Features
+
+* **commands:** Enhance /ship and /archive for supervised GUI workflows ([6a3b696](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/6a3b696bac71b1d5e9e9af306780e1b225afe564))
+* **workflow:** add model routing for different providers ([e5d4546](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/e5d4546530b85d8a7c0e56c6ea96a27db4d6d632))
+* **workflow:** add supervised work mode ([7339456](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/73394566624f5a55be7b10eda848268c02b89bb3))
+* **workflow:** Enhance /ship to detect and handle externally merged changes ([d5f62b2](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/d5f62b2462b84f6e525bb41dafe0c3a41f330031))
+* **workflow:** Integrate mandatory verification into /work command ([6b213cc](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/6b213cc6a4f5bb990f1b070f55bad1c161a69cb2))
+* **workflow:** replace work_mode with automated and supervised ([a71d337](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/a71d337451e19865d351f20a7edf601e10973aa9))
+* **workflow:** Streamline commit discipline for multi-task operations ([c196386](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/c19638644d3be2b56cd72f0f5a2ce717120da559))
+
+
+### Bug Fixes
+
+* **commands:** let /git-commit run from any checkout ([b08c59d](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/b08c59dce47b8b1e639e243b62cb24e5414f87ab))
+* **commands:** restrict {code} to acceptance criteria in task-jira ([09be90e](https://github.com/davidpv/opsx-spec-driven-development-toolkit/commit/09be90eb7bcb27128704cf9493e502b1368a6966))
+
 ## [2.2.0] - 2026-11-01
 
 ### Features
