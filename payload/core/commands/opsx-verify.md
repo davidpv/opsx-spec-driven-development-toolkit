@@ -4,7 +4,7 @@ description: Verify implementation matches change artifacts before merging (run 
 
 Verify that an implementation matches the change artifacts (specs, tasks, design) before merging. This command MUST run in the isolated checkout for the change so it sees the same code that will be merged.
 
-**Input**: Optionally specify a change name (e.g., `/opsx-verify add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+**Input**: A change name (e.g., `/opsx-verify add-auth`). `/work` always passes the change name; skip step 1. If the user invoked this command with no name, infer it from conversation context when it is unambiguous. If it is vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
 
@@ -24,13 +24,15 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
 1. **If no change name provided, prompt for selection**
 
-   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
+   If `/work` called you, the change name is already bound. Skip this step. Do not ask. Do not offer a list.
+
+   Otherwise, when no change name was given, run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
 
    Show changes that have implementation tasks (tasks artifact exists).
    Include the schema used for each change if available.
    Mark changes with incomplete tasks as "(In Progress)".
 
-   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
+   **IMPORTANT**: When the user invoked `/opsx:verify` directly, do NOT guess or auto-select a change. Always let the user choose. `/work` is the exception: it passes the name, and this step stays skipped.
 
 2. **Check status to understand the schema**
 
@@ -129,7 +131,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
    git add .openspec/
    ```
 
-   - If this verify is part of `/work`: stop. Do not suggest `/git-commit`. Do not ask. Return the report to `/work`. `/work` asks once, after verify, and commits the batch (code + tasks + this record) only on an explicit yes.
+   - If this verify is part of `/work`: do not suggest `/git-commit`. Do not ask. Finish step 10, then return that report to `/work`. `/work` asks once, after verify, and commits the batch (code + tasks + this record) only on an explicit yes.
    - If the user invoked `/opsx:verify` directly: suggest `/git-commit` and wait. Do not run `git commit` yourself.
 
 10. **Generate Verification Report**
